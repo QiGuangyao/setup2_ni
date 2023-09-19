@@ -1,3 +1,9 @@
+#ifdef DUMMY_NI
+
+#include "task_interface_dummy.cpp"
+
+#else
+
 #include "task_interface.hpp"
 #include "ni.hpp"
 #include "ringbuffer.hpp"
@@ -229,3 +235,5 @@ void task::trigger_reward_pulse(int channel_index, float secs) {
 }
 
 } //  ni
+
+#endif  //  #ifdef DUMMY_NI

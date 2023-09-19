@@ -433,8 +433,7 @@ void ni::update_ni() {
       if (pulse_it->time_remaining == 0.0) {
         analog_write(pulse_it->channel, 0.0f);
         pulse_it = globals.output_pulse_queue.pulses.erase(pulse_it);
-      }
-      else {
+      } else {
         ++pulse_it;
       }
     }
@@ -448,8 +447,7 @@ void ni::update_ni() {
       bool push_timepoint{};
       if (globals.input_sample_sync_points.time_points.empty()) {
         push_timepoint = true;
-      }
-      else {
+      } else {
         auto& last_timepoint = globals.input_sample_sync_points.time_points.back();
         if (buff.sample0_index - last_timepoint.sample_index >= Config::input_sample_index_sync_interval) {
           push_timepoint = true;
