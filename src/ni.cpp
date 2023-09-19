@@ -27,16 +27,7 @@ struct Config {
 };
 
 /*
- * util
- */
-
-template <typename T>
-T clamp(const T& v, const T& lo, const T& hi) {
-  return v < lo ? lo : v > hi ? hi : v;
-}
-
-/*
- * sync
+ * types
  */
 
 struct NIInputSampleSyncPoints {
@@ -73,71 +64,6 @@ struct OutputPulseQueue {
   std::vector<Pulse> pulses;
 };
 
-struct TriggerDetect {
-  double rising_threshold{1.5};
-  double falling_threshold{0.25};
-  bool high{};
-};
-
-struct TriggerTimePoints {
-  void init(time::TimePoint t0) {
-    time0 = t0;
-    time_points.reserve(1000);
-  }
-
-  void clear() {
-    time0 = {};
-    time_points.clear();
-  }
-
-  time::TimePoint time0{};
-  std::vector<ni::TriggerTimePoint> time_points;
-};
-
-struct NITriggerDetect {
-  void init(time::TimePoint t0) {
-    time_points.init(t0);
-  }
-
-  void reset() {
-    detect = {};
-    time_points.clear();
-  }
-
-  TriggerDetect detect;
-  TriggerTimePoints time_points;
-};
-
-std::optional<int> detect_first_rising(
-  TriggerDetect* detect, double* one_channel_data, int num_samples_in_channel) {
-  //
-  std::optional<int> result;
-  for (int i = 0; i < num_samples_in_channel; i++) {
-    double sample = one_channel_data[i];
-    if (!detect->high && sample >= detect->rising_threshold) {
-      if (!result) {
-        result = i;
-      }
-      detect->high = true;
-
-    } else if (detect->high && sample < detect->falling_threshold) {
-      detect->high = false;
-    }
-  }
-
-  return result;
-}
-
-void push_trigger_time_point(
-  TriggerTimePoints* tps, int sample_offset, uint64_t sample0_index,
-  double sample0_time, double ni_sample_rate) {
-  //
-  ni::TriggerTimePoint tp{};
-  tp.sample_index = sample0_index + uint64_t(sample_offset);
-  tp.elapsed_time = sample0_time + double(sample_offset) / ni_sample_rate;
-  tps->time_points.push_back(tp);
-}
-
 struct StaticSampleBufferArray {
   void clear() {
     num_buffers = 0;
@@ -165,11 +91,12 @@ struct NITask {
   bool started{};
 };
 
+/*
+ * globals
+ */
+
 struct {
   NITask ni_input_export_task{};
-
-  NITriggerDetect ni_trigger_detect{};
-  std::mutex ni_trigger_time_point_mutex{};
 
   std::vector<double> daq_sample_buffer;
   int num_samples_per_input_channel{};
@@ -199,21 +126,20 @@ struct {
 
 } globals;
 
+/*
+ * anon funcs
+ */
+
+template <typename T>
+T clamp(const T& v, const T& lo, const T& hi) {
+  return v < lo ? lo : v > hi ? hi : v;
+}
+
 void log_ni_error() {
   char err_buff[2048];
   memset(err_buff, 0, 2048);
   DAQmxGetExtendedErrorInfo(err_buff, 2048);
   printf("DAQmxError: %s\n", err_buff);
-}
-
-void ni_trigger_detect(
-  NITriggerDetect* detect, uint64_t sample0_index, double sample0_time, double* detect_channel,
-  int num_samples, double sample_rate) {
-  //
-  if (auto ind = detect_first_rising(&detect->detect, detect_channel, num_samples)) {
-    push_trigger_time_point(
-      &detect->time_points, ind.value(), sample0_index, sample0_time, sample_rate);
-  }
 }
 
 [[nodiscard]] uint32_t ni_read_data(TaskHandle task, double* read_buff, uint32_t num_samples) {
@@ -260,7 +186,7 @@ void ni_maybe_send_sample_buffer(
 
 int32 CVICALLBACK ni_input_sample_callback(TaskHandle task, int32, uInt32 num_samples, void*) {
   //
-  assert(num_samples == globals.num_samples_per_input_channel);
+  assert(int(num_samples) == globals.num_samples_per_input_channel);
   assert(globals.daq_sample_buffer.size() == num_samples * globals.num_analog_input_channels);
 
   ni_acquire_sample_buffers();
@@ -270,16 +196,6 @@ int32 CVICALLBACK ni_input_sample_callback(TaskHandle task, int32, uInt32 num_sa
 
   const uint64_t sample0_index = globals.ni_num_input_samples_acquired;
   double sample0_time = time::elapsed_time(globals.time0, time::now());
-
-  //  Look for rising edges in analog voltage trace on the first channel.
-  //  @TODO: We could specify a choice of channel index on which to look.
-  {
-    std::lock_guard<std::mutex> lock(globals.ni_trigger_time_point_mutex);
-
-    ni_trigger_detect(
-      &globals.ni_trigger_detect, sample0_index, sample0_time,
-      read_buff, num_read, globals.input_sample_rate);
-  }
 
   ni_maybe_send_sample_buffer(read_buff, num_read, sample0_index, sample0_time);
   globals.ni_num_input_samples_acquired += uint64_t(num_read);
@@ -460,6 +376,19 @@ bool analog_write(int channel, float v) {
   return true;
 }
 
+void release_sample_buffers() {
+  while (true) {
+    auto buff = globals.received_from_ni.pop_back();
+    if (buff) {
+      if (!globals.send_to_ni_daq.maybe_write(std::move(buff.value()))) {
+        assert(false);
+      }
+    } else {
+      break;
+    }
+  }
+}
+
 } //  anon
 
 bool ni::init_ni(const InitParams& params) {
@@ -469,7 +398,6 @@ bool ni::init_ni(const InitParams& params) {
 
   const auto t0 = time::now();
   globals.time0 = t0;
-  globals.ni_trigger_detect.init(t0);
 
   globals.input_sample_rate = params.sample_rate;
   globals.num_analog_input_channels = params.num_analog_input_channels;
@@ -540,7 +468,6 @@ void ni::update_ni() {
 void ni::terminate_ni() {
   stop_daq();
   globals.daq_sample_buffer.clear();
-  globals.ni_trigger_detect.reset();
   globals.num_samples_per_input_channel = 0;
   globals.num_analog_input_channels = 0;
   globals.num_analog_output_channels = 0;
@@ -567,34 +494,12 @@ int ni::read_sample_buffers(const SampleBuffer** buffs) {
   return globals.received_from_ni.num_buffers;
 }
 
-void ni::release_sample_buffers() {
-  while (true) {
-    auto buff = globals.received_from_ni.pop_back();
-    if (buff) {
-      if (!globals.send_to_ni_daq.maybe_write(std::move(buff.value()))) {
-        assert(false);
-      }
-    } else {
-      break;
-    }
-  }
-}
-
 time::TimePoint ni::read_time0() {
   return globals.time0;
 }
 
 std::vector<ni::TriggerTimePoint> ni::read_sync_time_points() {
   return globals.input_sample_sync_points.time_points;
-}
-
-std::vector<ni::TriggerTimePoint> ni::read_trigger_time_points() {
-  std::vector<ni::TriggerTimePoint> tps;
-  {
-    std::lock_guard<std::mutex> lock(globals.ni_trigger_time_point_mutex);
-    tps = globals.ni_trigger_detect.time_points.time_points;
-  }
-  return tps;
 }
 
 bool ni::write_analog_pulse(int channel, float val, float for_time) {

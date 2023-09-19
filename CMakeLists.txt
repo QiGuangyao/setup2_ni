@@ -15,10 +15,6 @@ function(configure_compiler_flags project)
     endif()
 endfunction(configure_compiler_flags)
 
-target_include_directories(${PROJECT_NAME} PUBLIC
-        src
-)
-
 if(NOT APPLE)
     set(NI_DIR "C:\\Program Files (x86)\\National Instruments\\Shared\\ExternalCompilerSupport\\C")
 
@@ -38,6 +34,8 @@ endif()
 target_sources(${PROJECT_NAME} PUBLIC
         ${CMAKE_SOURCE_DIR}/src/ni.hpp
         ${CMAKE_SOURCE_DIR}/src/ni.cpp
+        ${CMAKE_SOURCE_DIR}/src/task_interface.hpp
+        ${CMAKE_SOURCE_DIR}/src/task_interface.cpp
 )
 
 configure_compiler_flags(${PROJECT_NAME})
