@@ -11,6 +11,8 @@
 #include <memory>
 #include <fstream>
 #include <iostream>
+#include <mutex>
+#include <cassert>
 
 namespace ni {
 
@@ -22,7 +24,7 @@ namespace {
 
 struct Config {
   static constexpr double sample_rate = 1000.0;
-  static constexpr int num_samples_per_channel = 1000;
+  static constexpr int num_samples_per_channel = 5;
   static constexpr double video_frame_rate_hz = 90.0;
 };
 
@@ -142,21 +144,21 @@ bool task_init_ni() {
   const double maxv = 5.0;
 
   ni::ChannelDescriptor ai_channel_descs[6]{
-    {"ai0", minv, maxv},  //  x1
-    {"ai1", minv, maxv},  //  y1
-    {"ai2", minv, maxv},  //  pup1
-    {"ai3", minv, maxv},  //  x2
-    {"ai4", minv, maxv},  //  y2
-    {"ai5", minv, maxv},  //  pup2
+    {"dev1/ai0", minv, maxv},  //  x1
+    {"dev1/ai1", minv, maxv},  //  y1
+    {"dev1/ai2", minv, maxv},  //  pup1
+    {"dev1/ai3", minv, maxv},  //  x2
+    {"dev1/ai4", minv, maxv},  //  y2
+    {"dev1/ai5", minv, maxv},  //  pup2
   };
 
   ni::ChannelDescriptor ao_channel_descs[2]{
-    {"ao0", minv, maxv},  //  juice1
-    {"ao1", minv, maxv},  //  juice2
+    {"dev1/ao0", minv, maxv},  //  juice1
+    {"dev1/ao1", minv, maxv},  //  juice2
   };
 
   ni::CounterOutputChannelDescriptor co_channel_descs[1]{
-    {"pf0", 5.0, Config::video_frame_rate_hz, 0.5}
+    {"dev1/ctr0", 1.0, Config::video_frame_rate_hz, 0.5}
   };
 
   ni::InitParams params{};
@@ -165,7 +167,7 @@ bool task_init_ni() {
   params.analog_input_channels = ai_channel_descs;
   params.num_analog_input_channels = 6;
   params.analog_output_channels = ao_channel_descs;
-  params.num_analog_output_channels = 2;
+  params.num_analog_output_channels = 0;
   params.counter_output_channels = co_channel_descs;
   params.num_counter_output_channels = 1;
   return init_ni(params);
@@ -200,6 +202,8 @@ void task_thread(const task::InitParams& params) {
       task_write_data(buffs, num_buffs);
       task_send(buffs, num_buffs);
     }
+  } else {
+    printf("Failed to initialize NI\n");
   }
 
   terminate_ni();

@@ -1,4 +1,4 @@
-dummy_ni = true;
+dummy_ni = false;
 do_build = true;
 
 repo_p = fileparts( fileparts(which('build_ni')) );
@@ -34,16 +34,26 @@ if ( dummy_ni )
   lib_names(1) = [];
   addtl_defines{end+1} = 'DUMMY_NI';
   src_ps = src_ps(has_src);
+else
+  rm_src = contains( src_ps, 'task_interface_dummy.cpp' );
+  src_ps(rm_src) = [];
 end
 
 src_ps = [ mex_p, src_ps ];
 
 optim_level = 3;
 
-addtl_cxx_flags = 'CXXFLAGS="-std=c++17"';
+if ( ispc() )
+  addtl_cxx_flags = '';
+  comp_flags = 'COMPFLAGS="$COMPFLAGS /std:c++17"';
+else
+  addtl_cxx_flags = 'CXXFLAGS="-std=c++17"';
+  comp_flags = '';
+end
 
 build_cmd = sprintf( ...
-    '-v %s %s COPTIMFLAGS="-O%d" CXXOPTIMFLAGS="-O%d" %s %s %s %s -outdir "%s"' ...
+    '-v %s %s %s COPTIMFLAGS="-O%d" CXXOPTIMFLAGS="-O%d" %s %s %s %s -outdir "%s"' ...
+  , comp_flags ...
   , addtl_cxx_flags ...
   , strjoin(cellfun(@(x) sprintf('-D%s', x), addtl_defines, 'un', 0), ' ') ...
   , optim_level, optim_level ...

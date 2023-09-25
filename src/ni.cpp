@@ -12,6 +12,7 @@
 #include <optional>
 #include <atomic>
 #include <mutex>
+#include <string>
 
 namespace {
 
@@ -144,11 +145,11 @@ void log_ni_error() {
   printf("DAQmxError: %s\n", err_buff);
 }
 
-[[nodiscard]] uint32_t ni_read_data(TaskHandle task, double* read_buff, uint32_t num_samples) {
+[[nodiscard]] uint32_t ni_read_data(TaskHandle task, double* read_buff, uint32_t num_samples, uint32_t num_channels) {
   int32 num_read{};
   const int32 status = DAQmxReadAnalogF64(
-    task, num_samples, 100.0, DAQmx_Val_GroupByChannel,
-    read_buff, num_samples, &num_read, nullptr);
+    task, num_samples, 100.0, DAQmx_Val_GroupByScanNumber,
+    read_buff, num_samples * num_channels, &num_read, nullptr);
   if (status != 0) {
     log_ni_error();
   }
@@ -194,7 +195,8 @@ int32 CVICALLBACK ni_input_sample_callback(TaskHandle task, int32, uInt32 num_sa
   ni_acquire_sample_buffers();
 
   double* read_buff = globals.daq_sample_buffer.data();
-  const uint32_t num_read = ni_read_data(task, read_buff, num_samples);
+  const uint32_t num_read = ni_read_data(task, read_buff, num_samples, globals.num_analog_input_channels);
+  assert(num_read == num_samples);
 
   const uint64_t sample0_index = globals.ni_num_input_samples_acquired;
   double sample0_time = time::elapsed_time(globals.time0, time::now());
@@ -298,9 +300,13 @@ bool start_counter_outputs(const ni::InitParams& params) {
       return false;
     }
 
+#if 1
+    status = DAQmxCfgImplicitTiming(task_handle, DAQmx_Val_ContSamps, params.num_samples_per_channel);
+#else
     status = DAQmxCfgSampClkTiming(
       task_handle, "", params.sample_rate,
       DAQmx_Val_Rising, DAQmx_Val_ContSamps, params.num_samples_per_channel);
+#endif
     if (status != 0) {
       log_ni_error();
       return false;
