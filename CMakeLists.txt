@@ -39,3 +39,5 @@ target_sources(${PROJECT_NAME} PUBLIC
 )
 
 configure_compiler_flags(${PROJECT_NAME})
+
+add_subdirectory(test/test_task)
