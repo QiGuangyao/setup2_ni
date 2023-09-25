@@ -27,15 +27,28 @@ struct ChannelDescriptor {
   double max_value;
 };
 
+struct CounterOutputChannelDescriptor {
+  const char* name;
+  double initial_delay;
+  double freq;
+  double duty_cycle;
+};
+
 //  @NOTE: Cannot read from and write to the same terminal (channel name) simultaneously.
 struct InitParams {
   double sample_rate;
   int num_samples_per_channel;
+
   const ChannelDescriptor* analog_input_channels;
   int num_analog_input_channels;
+
   const ChannelDescriptor* analog_output_channels;
   int num_analog_output_channels;
+
   std::optional<const char*> sample_clock_channel_name;
+
+  const CounterOutputChannelDescriptor* counter_output_channels;
+  int num_counter_output_channels;
 };
 
 struct TriggerTimePoint {

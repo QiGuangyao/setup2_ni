@@ -2,6 +2,7 @@
 #include "task_interface.hpp"
 #include <optional>
 #include <cstdio>
+#include <cmath>
 
 namespace {
 
@@ -53,6 +54,7 @@ void check_input_outputs(
   }
 }
 
+//  update
 void do_update(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   check_input_outputs(nlhs, nrhs, 1, 0);
   
@@ -65,6 +67,7 @@ void do_update(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   plhs[0] = sample_struct;
 }
 
+//  start
 void do_start(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   check_input_outputs(nlhs, nrhs, 0, 1);
   
@@ -73,16 +76,41 @@ void do_start(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     mexErrMsgIdAndTxt(err_id, "Failed to obtain destination file path.");
   }
   
-  std::string str_file_p{dst_file_p};
-  printf("\nOpening file: \"%s\"\n\n.", str_file_p.c_str());
-  
   task::InitParams params{};
-  params.samples_file_p = str_file_p;
-  start_ni(params);
+  params.samples_file_p = std::string{dst_file_p};
+  task::start_ni(params);
 }
 
+//  stop
 void do_stop(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   check_input_outputs(nlhs, nrhs, 0, 0);
+  task::stop_ni();
+}
+
+//  reward
+void do_reward(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
+  check_input_outputs(nlhs, nrhs, 0, 2);
+  
+  const char* input_names[2]{"channel", "seconds"};
+  for (int i = 0; i < 2; i++) {
+    if (!mxIsDouble(prhs[i]) || !mxIsScalar(prhs[i])) {
+      std::string msg{"Expected double scalar input for "};
+      msg += input_names[i];
+      mexErrMsgIdAndTxt(err_id, msg.c_str());
+    }
+  }
+  
+  const double channel = *mxGetPr(prhs[0]);
+  if (channel != std::floor(channel) || channel < 0.0) {
+    mexErrMsgIdAndTxt(err_id, "Expected non-negative integer channel.");
+  }
+  
+  const double secs = (float)(*mxGetPr(prhs[1]));
+  if (secs < 0.0) {
+    mexErrMsgIdAndTxt(err_id, "Expected non-negative duration.");
+  }
+  
+  task::trigger_reward_pulse(int(channel), float(secs));
 }
   
 } //  anon
@@ -102,23 +130,32 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     mexErrMsgIdAndTxt(err_id, "Expected uint32 function code.");
   }
   
+  nrhs -= 1;
+  prhs += 1;
+  
   const uint32_t func = *(const uint32_t*)mxGetData(func_code);
   switch (func) {
     //  start
     case 0: {
-      do_start(nlhs, plhs, nrhs - 1, prhs + 1);
+      do_start(nlhs, plhs, nrhs, prhs);
       break;
     }
     
     //  update
     case 1: {
-      do_update(nlhs, plhs, nrhs - 1, prhs + 1);
+      do_update(nlhs, plhs, nrhs, prhs);
+      break;
+    }
+    
+    //  reward
+    case 2: {
+      do_reward(nlhs, plhs, nrhs, prhs);
       break;
     }
     
     //  stop
-    case 2: {
-      do_stop(nlhs, plhs, nrhs - 1, prhs + 1);
+    case 3: {
+      do_stop(nlhs, plhs, nrhs, prhs);
       break;
     }
     

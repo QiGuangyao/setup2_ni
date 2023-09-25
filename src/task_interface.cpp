@@ -23,6 +23,7 @@ namespace {
 struct Config {
   static constexpr double sample_rate = 1000.0;
   static constexpr int num_samples_per_channel = 1000;
+  static constexpr double video_frame_rate_hz = 90.0;
 };
 
 /*
@@ -154,6 +155,10 @@ bool task_init_ni() {
     {"ao1", minv, maxv},  //  juice2
   };
 
+  ni::CounterOutputChannelDescriptor co_channel_descs[1]{
+    {"pf0", 5.0, Config::video_frame_rate_hz, 0.5}
+  };
+
   ni::InitParams params{};
   params.sample_rate = Config::sample_rate;
   params.num_samples_per_channel = Config::num_samples_per_channel;
@@ -161,6 +166,8 @@ bool task_init_ni() {
   params.num_analog_input_channels = 6;
   params.analog_output_channels = ao_channel_descs;
   params.num_analog_output_channels = 2;
+  params.counter_output_channels = co_channel_descs;
+  params.num_counter_output_channels = 1;
   return init_ni(params);
 }
 

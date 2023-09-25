@@ -101,12 +101,14 @@ struct {
   std::vector<double> daq_sample_buffer;
   int num_samples_per_input_channel{};
   int num_analog_input_channels{};
-  double input_sample_rate{};
   uint64_t ni_num_input_samples_acquired{};
 
   NITask ni_analog_output_tasks[32]{};
   ni::ChannelDescriptor analog_output_channel_descs[32]{};
   int num_analog_output_channels{};
+
+  NITask ni_counter_output_tasks[32]{};
+  int num_counter_output_tasks{};
 
   RingBuffer<ni::SampleBuffer, Config::input_sample_buffer_ring_buffer_capacity> send_to_ni_daq;
   StaticSampleBufferArray received_from_ni{};
@@ -270,6 +272,52 @@ bool start_outputs(const ni::InitParams& params) {
   return true;
 }
 
+bool start_counter_outputs(const ni::InitParams& params) {
+  globals.num_counter_output_tasks = params.num_counter_output_channels;
+
+  for (int i = 0; i < params.num_counter_output_channels; i++) {
+    int32 status{};
+
+    NITask& task = globals.ni_counter_output_tasks[i];
+    auto& task_handle = task.task;
+    auto& channel_desc = params.counter_output_channels[i];
+
+    std::string task_name{"COTask"};
+    task_name += std::to_string(i);
+    status = DAQmxCreateTask(task_name.c_str(), &task_handle);
+    if (status != 0) {
+      log_ni_error();
+      return false;
+    }
+
+    status = DAQmxCreateCOPulseChanFreq(
+      task_handle, channel_desc.name, "", DAQmx_Val_Hz, DAQmx_Val_Low,
+      channel_desc.initial_delay, channel_desc.freq, channel_desc.duty_cycle);
+    if (status != 0) {
+      log_ni_error();
+      return false;
+    }
+
+    status = DAQmxCfgSampClkTiming(
+      task_handle, "", params.sample_rate,
+      DAQmx_Val_Rising, DAQmx_Val_ContSamps, params.num_samples_per_channel);
+    if (status != 0) {
+      log_ni_error();
+      return false;
+    }
+
+    status = DAQmxStartTask(task_handle);
+    if (status != 0) {
+      log_ni_error();
+      return false;
+    } else {
+      task.started = true;
+    }
+  }
+
+  return true;
+}
+
 bool start_inputs_and_exports(const ni::InitParams& params) {
   const uint32_t num_samples = params.num_samples_per_channel;
 
@@ -348,6 +396,10 @@ bool start_daq(const ni::InitParams& params) {
     return false;
   }
 
+  if (!start_counter_outputs(params)) {
+    return false;
+  }
+
   return true;
 }
 
@@ -355,6 +407,9 @@ void stop_daq() {
   clear_task(&globals.ni_input_export_task);
   for (int i = 0; i < globals.num_analog_output_channels; i++) {
     clear_task(&globals.ni_analog_output_tasks[i]);
+  }
+  for (int i = 0; i < globals.num_counter_output_tasks; i++) {
+    clear_task(&globals.ni_counter_output_tasks[i]);
   }
 }
 
@@ -389,6 +444,54 @@ void release_sample_buffers() {
   }
 }
 
+void update_output_pulses() {
+  if (globals.first_time) {
+    globals.last_time = time::now();
+    globals.first_time = false;
+  }
+
+  auto curr_t = time::now();
+  double dt = time::elapsed_time(globals.last_time, curr_t);
+  globals.last_time = curr_t;
+
+  //  set high terminals -> low
+  auto pulse_it = globals.output_pulse_queue.pulses.begin();
+  while (pulse_it != globals.output_pulse_queue.pulses.end()) {
+    pulse_it->time_remaining = std::max(0.0, pulse_it->time_remaining - dt);
+    if (pulse_it->time_remaining == 0.0) {
+      analog_write(pulse_it->channel, 0.0f);
+      pulse_it = globals.output_pulse_queue.pulses.erase(pulse_it);
+    } else {
+      ++pulse_it;
+    }
+  }
+}
+
+void update_sample_index_sync() {
+  const SampleBuffer* buffs{};
+  int num_buffs = std::min(1, read_sample_buffers(&buffs));
+  if (num_buffs == 0) {
+    return;
+  }
+
+  auto& buff = buffs[0];
+  bool push_timepoint{};
+  if (globals.input_sample_sync_points.time_points.empty()) {
+    push_timepoint = true;
+  } else {
+    auto& last_timepoint = globals.input_sample_sync_points.time_points.back();
+    if (buff.sample0_index - last_timepoint.sample_index >= Config::input_sample_index_sync_interval) {
+      push_timepoint = true;
+    }
+  }
+
+  if (push_timepoint) {
+    auto& next_sync_point = globals.input_sample_sync_points.time_points.emplace_back();
+    next_sync_point.sample_index = buff.sample0_index;
+    next_sync_point.elapsed_time = buff.sample0_time;
+  }
+}
+
 } //  anon
 
 bool ni::init_ni(const InitParams& params) {
@@ -399,7 +502,6 @@ bool ni::init_ni(const InitParams& params) {
   const auto t0 = time::now();
   globals.time0 = t0;
 
-  globals.input_sample_rate = params.sample_rate;
   globals.num_analog_input_channels = params.num_analog_input_channels;
   globals.num_samples_per_input_channel = params.num_samples_per_channel;
 
@@ -416,51 +518,8 @@ bool ni::init_ni(const InitParams& params) {
 
 void ni::update_ni() {
   release_sample_buffers();
-
-  if (globals.first_time) {
-    globals.last_time = time::now();
-    globals.first_time = false;
-  }
-
-  auto curr_t = time::now();
-  double dt = time::elapsed_time(globals.last_time, curr_t);
-  globals.last_time = curr_t;
-
-  { //  set high terminals -> low
-    auto pulse_it = globals.output_pulse_queue.pulses.begin();
-    while (pulse_it != globals.output_pulse_queue.pulses.end()) {
-      pulse_it->time_remaining = std::max(0.0, pulse_it->time_remaining - dt);
-      if (pulse_it->time_remaining == 0.0) {
-        analog_write(pulse_it->channel, 0.0f);
-        pulse_it = globals.output_pulse_queue.pulses.erase(pulse_it);
-      } else {
-        ++pulse_it;
-      }
-    }
-  }
-
-  { //  sync between ni sample indices and task time
-    const SampleBuffer* buffs{};
-    int num_buffs = std::min(1, read_sample_buffers(&buffs));
-    if (num_buffs > 0) {
-      auto& buff = buffs[0];
-      bool push_timepoint{};
-      if (globals.input_sample_sync_points.time_points.empty()) {
-        push_timepoint = true;
-      } else {
-        auto& last_timepoint = globals.input_sample_sync_points.time_points.back();
-        if (buff.sample0_index - last_timepoint.sample_index >= Config::input_sample_index_sync_interval) {
-          push_timepoint = true;
-        }
-      }
-
-      if (push_timepoint) {
-        auto& next_sync_point = globals.input_sample_sync_points.time_points.emplace_back();
-        next_sync_point.sample_index = buff.sample0_index;
-        next_sync_point.elapsed_time = buff.sample0_time;
-      }
-    }
-  }
+  update_output_pulses();
+  update_sample_index_sync();
 }
 
 void ni::terminate_ni() {
@@ -469,7 +528,7 @@ void ni::terminate_ni() {
   globals.num_samples_per_input_channel = 0;
   globals.num_analog_input_channels = 0;
   globals.num_analog_output_channels = 0;
-  globals.input_sample_rate = 0.0;
+  globals.num_counter_output_tasks = 0;
   globals.ni_num_input_samples_acquired = 0;
   globals.send_to_ni_daq.clear();
   globals.send_from_ni_daq.clear();
