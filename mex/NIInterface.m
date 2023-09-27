@@ -1,20 +1,47 @@
-%{
-
-see also ni_mex.cpp
-
-%}
+%   NIInterface
+%   
+%     This class presents a friendlier interface to the mex function
+%     `ni_mex`, responsible for interfacing with the NI DAQ card for
+%     recording gaze data, synchronizing with other hardware (e.g.
+%     cameras, neural signals), and generating TTL pulses.
+% 
+%     see also NIInterface/initialize, NIInterface/shutdown, ni_mex.cpp
 
 classdef NIInterface < handle
-  properties
+  properties (SetAccess = private, GetAccess = public)
     dummy = false;
     initialized = false;
   end
 
   methods
-    function obj = NIInterface()
+    function obj = NIInterface(dummy)
+      
+      %   NIINTERFACE -- Interface constructor.
+      %
+      %     ni = NIInterface( is_dummy ); constructs the interface object
+      %     `ni`. Optionally specify `is_dummy`, a logical scalar, to
+      %     indicate whether to simulate the interface.
+      %
+      %     See also NIInterface/initialize
+      
+      if ( nargin == 0 )
+        dummy = false;
+      end
+      
+      validateattributes( dummy, {'logical'}, {'scalar'}, mfilename, 'dummy' );
+      obj.dummy = dummy;
     end
 
     function initialize(obj, dst_file_p)
+      
+      %   INITIALIZE -- Initialize interface.
+      %
+      %     initialize( obj, dst_file_p ); initializes the underlying 
+      %     NI interface and begins recording data to `dst_file_p`,
+      %     a char vector.
+      %
+      %     See also NIInterface, NIInterface/shutdown, NIInterface/tick
+      
       validateattributes( ...
         dst_file_p, {'char'}, {'scalartext'}, mfilename, 'dst_file_p' );
 
@@ -29,6 +56,11 @@ classdef NIInterface < handle
     end
 
     function shutdown(obj)
+      
+      %   SHUTDOWN -- Deinitialize interface.
+      %
+      %     See also NIInterface/initialize
+      
       if ( obj.initialized )
         NIInterface.stop();
       end
@@ -37,7 +69,22 @@ classdef NIInterface < handle
     end
 
     function res = tick(obj)
+      
+      %   TICK -- Update interface.
+      %
+      %     res = tick( ni ); updates the underlying NI interface and
+      %     returns the latest available sample of gaze data in `res`. If 
+      %     the interface is in simulation mode (i.e., dummy is true), or
+      %     if uninitialized, then all fields of `res` are 0.
+      %
+      %     See also NIInterface/initialize
+      
       if ( ~obj.initialized )
+        if ( ~obj.dummy )
+          warning( ['Attempting to update, but interface is not yet initialized;' ...
+            , ' call initialize() first, or specify dummy = true to enable' ...
+            , ' simulation mode.'] );
+        end
         res = empty_update_result();
       else
         res = NIInterface.update();
@@ -45,6 +92,19 @@ classdef NIInterface < handle
     end
 
     function reward_trigger(obj, chan, dur_s)
+      
+      %   REWARD_TRIGGER -- Trigger reward.
+      %
+      %     reward_trigger( ni, chan, dur_s ); writes an analog TTL pulse 
+      %     of `dur_s` (a double scalar) duration to channel `chan` (a
+      %     double scalar). Channel indices are 0-based!
+      %
+      %     EX //
+      %     reward_trigger( ni, 0, 50e-3 ); writes a 50ms pulse to channel
+      %     0 (the first channel).
+      %
+      %     See also NIInterface/tick, NIInterface/initialize
+      
       if ( ~obj.initialized )
         return
       end
@@ -87,33 +147,3 @@ res.x2 = 0;
 res.y2 = 0;
 
 end
-%{
-
-dst_p = 'C:\Users\setup2\source\setup2_ni\data\test2.dat';
-
-ni_mex( uint32(0), dst_p );
-
-t0 = tic;
-pulse_t0 = tic;
-while ( toc(t0) < 5 )
-  res = ni_mex( uint32(1) );
-
-  if ( 0 )
-    fprintf("%0.4f, %0.4f, %0.4f | %0.4f, %0.4f, %0.4f\n", ...
-      res.pupil1, res.x1, res.y1, res.pupil2, res.x2, res.y2 );
-  end
-
-  if ( 1 && toc(pulse_t0) > 2 )
-    reward_t0 = tic;
-    for i = 1:2
-      ni_mex( uint32(2), i-1, 0.5 );
-    end
-    reward_elapsed = toc( reward_t0 );
-    pulse_t0 = tic;
-    fprintf( 'Reward took %0.3f(s)\n', reward_elapsed );
-  end
-end
-
-ni_mex( uint32(3) );
-
-%}

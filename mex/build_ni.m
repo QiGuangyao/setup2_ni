@@ -1,9 +1,33 @@
-dummy_ni = false;
-do_build = true;
+function build_ni(do_build)
+
+%   BUILD_NI -- Build script for `ni_mex` interface.
+%
+%     This function is used to build the mex function `ni_mex` from source.
+% 
+%     This function, when built on Windows, depends on the National 
+%     Instruments SDK, which can be downloaded from their website. This SDK 
+%     is expected to be located in 
+%     C:\Program Files (x86)\National Instruments on PC.
+%
+%     build_ni() attempts to build the interface from source.
+%     build_ni( false ) prints the mex command that would normally be
+%     evaluated to build the interface.
+%
+%     For platforms other than Windows, a dummy interface will be built.
+%
+%     See also NIInterface
+
+dummy_ni = ~ispc();
+
+if ( nargin < 1 )
+  do_build = true;
+end
 
 repo_p = fileparts( fileparts(which('build_ni')) );
 
-src_ps = shared_utils.io.find( fullfile(repo_p, 'src'), {'.cpp'} );
+src_dir = dir( fullfile(repo_p, 'src') );
+src_dir = fullfile( {src_dir.folder}, {src_dir.name} );
+src_ps = src_dir(endsWith(src_dir, '.cpp'));
 mex_p = fullfile( repo_p, 'mex', 'ni_mex.cpp' );
 
 out_dir = fullfile( repo_p, 'mex' );
@@ -68,4 +92,6 @@ if ( do_build )
   eval( sprintf('mex %s', build_cmd) );
 else
   fprintf( '\n\n\n%s\n\n\n', build_cmd );
+end
+
 end
