@@ -1,4 +1,4 @@
-data_file = 'C:\Users\setup2\source\setup2_ni\data\test.dat';
+data_file = 'C:\Users\setup2\source\setup2_ni\data\test2.dat';
 
 num_samples_per_channel = 5;
 num_chans = 6;
