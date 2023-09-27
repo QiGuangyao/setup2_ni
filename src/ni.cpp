@@ -104,9 +104,11 @@ struct {
   int num_analog_input_channels{};
   uint64_t ni_num_input_samples_acquired{};
 
-  NITask ni_analog_output_tasks[32]{};
+  NITask ni_analog_output_task;
   ni::ChannelDescriptor analog_output_channel_descs[32]{};
   int num_analog_output_channels{};
+  int num_samples_per_output_channel{};
+  std::vector<double> analog_output_buffer;
 
   NITask ni_counter_output_tasks[32]{};
   int num_counter_output_tasks{};
@@ -228,23 +230,21 @@ void init_input_data_handoff(int num_channels, int num_samples_per_channel) {
 }
 
 bool start_outputs(const ni::InitParams& params) {
-  globals.num_analog_output_channels = params.num_analog_output_channels;
-
-  for (int i = 0; i < params.num_analog_output_channels; i++) {
-    int32 status{};
-
-    auto& task_handle = globals.ni_analog_output_tasks[i].task;
-    auto& channel_desc = params.analog_output_channels[i];
-
-    globals.analog_output_channel_descs[i] = channel_desc;
-
-    std::string task_name{"OutputTask"};
-    task_name += std::to_string(i);
-    status = DAQmxCreateTask(task_name.c_str(), &task_handle);
+  {
+    int32 status = DAQmxCreateTask("OutputTask", &globals.ni_analog_output_task.task);
     if (status != 0) {
       log_ni_error();
       return false;
     }
+  }
+
+  for (int i = 0; i < params.num_analog_output_channels; i++) {
+    TaskHandle task_handle = globals.ni_analog_output_task.task;
+
+    int32 status{};
+    const auto& channel_desc = params.analog_output_channels[i];
+
+    globals.analog_output_channel_descs[i] = channel_desc;
 
     status = DAQmxCreateAOVoltageChan(
       task_handle, channel_desc.name, "",
@@ -261,13 +261,21 @@ bool start_outputs(const ni::InitParams& params) {
       log_ni_error();
       return false;
     }
+  }
 
-    status = DAQmxStartTask(task_handle);
+  //  reserve space for writing samples.
+  globals.num_analog_output_channels = params.num_analog_output_channels;
+  globals.num_samples_per_output_channel = params.num_samples_per_channel;
+  globals.analog_output_buffer.resize(
+    globals.num_analog_output_channels * globals.num_samples_per_output_channel);
+
+  {
+    const int32 status = DAQmxStartTask(globals.ni_analog_output_task.task);
     if (status != 0) {
       log_ni_error();
       return false;
     } else {
-      globals.ni_analog_output_tasks[i].started = true;
+      globals.ni_analog_output_task.started = true;
     }
   }
 
@@ -411,9 +419,7 @@ bool start_daq(const ni::InitParams& params) {
 
 void stop_daq() {
   clear_task(&globals.ni_input_export_task);
-  for (int i = 0; i < globals.num_analog_output_channels; i++) {
-    clear_task(&globals.ni_analog_output_tasks[i]);
-  }
+  clear_task(&globals.ni_analog_output_task);
   for (int i = 0; i < globals.num_counter_output_tasks; i++) {
     clear_task(&globals.ni_counter_output_tasks[i]);
   }
@@ -421,14 +427,26 @@ void stop_daq() {
 
 bool analog_write(int channel, float v) {
   assert(channel >= 0 && channel < globals.num_analog_output_channels);
-  auto& ni_task = globals.ni_analog_output_tasks[channel];
+  auto& ni_task = globals.ni_analog_output_task;
   if (!ni_task.started) {
     return false;
   }
 
   auto& channel_desc = globals.analog_output_channel_descs[channel];
-  double val = clamp(double(v), channel_desc.min_value, channel_desc.max_value);
-  int32 status = DAQmxWriteAnalogScalarF64(ni_task.task, false, -1.0, val, nullptr);
+  double write_v = clamp(double(v), channel_desc.min_value, channel_desc.max_value);
+
+  const int offset = globals.num_samples_per_output_channel * channel;
+  for (int i = 0; i < globals.num_samples_per_output_channel; i++) {
+    globals.analog_output_buffer[i + offset] = write_v;
+  }
+
+  int32 samps_per_chan_written{};
+  const int32 status = DAQmxWriteAnalogF64(
+    ni_task.task, globals.num_samples_per_output_channel, true, 
+    DAQmx_Val_WaitInfinitely, DAQmx_Val_GroupByChannel, 
+    globals.analog_output_buffer.data(), &samps_per_chan_written, nullptr);
+  assert(samps_per_chan_written == globals.num_samples_per_output_channel);
+
   if (status != 0) {
     log_ni_error();
     return false;
@@ -572,4 +590,14 @@ bool ni::write_analog_pulse(int channel, float val, float for_time) {
 
   globals.output_pulse_queue.push(channel, for_time);
   return true;
+}
+
+bool ni::write_analog_pulse(int channel, bool hi, float for_time) {
+  if (channel < 0 || channel >= globals.num_analog_output_channels) {
+    return false;
+  }
+
+  auto& desc = globals.analog_output_channel_descs[channel];
+  const float val = hi ? desc.max_value : desc.min_value;
+  return write_analog_pulse(channel, val, for_time);
 }

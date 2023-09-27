@@ -77,5 +77,6 @@ time::TimePoint read_time0();
 std::vector<TriggerTimePoint> read_sync_time_points();
 
 bool write_analog_pulse(int channel, float v, float time_high);
+bool write_analog_pulse(int channel, bool hi, float time_high);
 
 } //  ni

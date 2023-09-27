@@ -16,6 +16,7 @@ int main(int, char**) {
   task::start_ni(init_p);
 
   auto t0 = time::now();
+  auto pulse_t0 = time::now();
   while (time::Duration(time::now() - t0).count() < 20.0) {
     task::update_ni();
 
@@ -23,6 +24,16 @@ int main(int, char**) {
 #if 1
     printf("%0.4f, %0.4f, %0.4f | %0.4f, %0.4f, %0.4f\n",
            samp.pupil1, samp.x1, samp.y1, samp.pupil2, samp.x2, samp.y2);
+#endif
+
+#if 1
+    if (time::Duration(time::now() - pulse_t0).count() > 2.0) {
+      for (int i = 0; i < 2; i++) {
+        printf("Triggered pulse\n");
+        task::trigger_reward_pulse(i, 0.5f);
+        pulse_t0 = time::now();
+      }
+    }
 #endif
 
     std::this_thread::sleep_for(std::chrono::milliseconds(1));

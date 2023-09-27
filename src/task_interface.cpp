@@ -167,7 +167,7 @@ bool task_init_ni() {
   params.analog_input_channels = ai_channel_descs;
   params.num_analog_input_channels = 6;
   params.analog_output_channels = ao_channel_descs;
-  params.num_analog_output_channels = 0;
+  params.num_analog_output_channels = 2;
   params.counter_output_channels = co_channel_descs;
   params.num_counter_output_channels = 1;
   return init_ni(params);
@@ -186,6 +186,17 @@ void task_send(const ni::SampleBuffer* buffs, int num_buffs) {
   send_from_task(&globals.from_task, buffs, num_buffs);
 }
 
+//  trigger pending rewards
+void task_trigger_rewards() {
+  const int num_pend = globals.to_task.pulses.size();
+  for (int i = 0; i < num_pend; i++) {
+    auto pulse = globals.to_task.pulses.read();
+    if (!ni::write_analog_pulse(pulse.channel, true, pulse.seconds)) {
+      printf("Warning: failed to write analog pulse to channel: %d\n", pulse.channel);
+    }
+  }
+}
+
 //  main task loop
 void task_thread(const task::InitParams& params) {
   if (!open_output_stream(&globals.samples_file, params.samples_file_p.c_str())) {
@@ -201,6 +212,7 @@ void task_thread(const task::InitParams& params) {
 
       task_write_data(buffs, num_buffs);
       task_send(buffs, num_buffs);
+      task_trigger_rewards();
     }
   } else {
     printf("Failed to initialize NI\n");
