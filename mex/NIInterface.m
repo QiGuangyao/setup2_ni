@@ -118,6 +118,10 @@ classdef NIInterface < handle
   end
 
   methods (Static = true)
+    function r = get_empty_update_result()
+      r = empty_update_result();
+    end
+
     function start(dst_p)
       ni_mex( uint32(0), dst_p );
     end
