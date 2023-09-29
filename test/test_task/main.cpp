@@ -26,13 +26,18 @@ int main(int, char**) {
            samp.pupil1, samp.x1, samp.y1, samp.pupil2, samp.x2, samp.y2);
 #endif
 
-#if 0
+#if 1
     if (time::Duration(time::now() - pulse_t0).count() > 2.0) {
+#if 1
       for (int i = 0; i < 2; i++) {
-        printf("Triggered pulse\n");
+        printf("Triggered reward pulse\n");
         task::trigger_reward_pulse(i, 0.5f);
         pulse_t0 = time::now();
       }
+#else
+      task::trigger_pulse(0, 5.0f, 0.5f);
+      printf("Triggered pulse\n");
+#endif
     }
 #endif
 

@@ -146,11 +146,13 @@ classdef NIInterface < handle
     end
   end
 
-  methods (Static = true, Access = private)
+  methods (Static = true)
     function r = get_empty_update_result()
       r = empty_update_result();
     end
+  end
 
+  methods (Static = true, Access = private)
     function start(dst_p)
       ni_mex( uint32(0), dst_p );
     end
