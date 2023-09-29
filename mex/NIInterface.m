@@ -90,14 +90,40 @@ classdef NIInterface < handle
         res = NIInterface.update();
       end
     end
+    
+    function pulse_trigger(obj, chans, v, dur_s)
+      
+      %   PULSE_TRIGGER -- Trigger pulse with custom voltage.
+      %
+      %     pulse_trigger( ni, chan, v, dur_s ); writes an analog pulse 
+      %     with voltage `v` of `dur_s` (a double scalar) duration to 
+      %     channel `chan` (a double scalar). Channel indices are 0-based!
+      %
+      %     pulse_trigger( ni, chans, v, dur_s ); triggers pulses of `v`
+      %     voltage and `dur_s` duration on `chans` channels.
+      %
+      %     See also NIInterface/tick, NIInterface/initialize,
+      %       NIInterface/reward_trigger
+      
+      if ( ~obj.initialized )
+        return
+      end
 
-    function reward_trigger(obj, chan, dur_s)
+      for i = 1:numel(chans)
+        NIInterface.trigger_custom_pulse( chans(i), v, dur_s );
+      end
+    end
+
+    function reward_trigger(obj, chans, dur_s)
       
       %   REWARD_TRIGGER -- Trigger reward.
       %
       %     reward_trigger( ni, chan, dur_s ); writes an analog TTL pulse 
       %     of `dur_s` (a double scalar) duration to channel `chan` (a
       %     double scalar). Channel indices are 0-based!
+      %
+      %     reward_trigger( ni, chans, dur_s ); triggers pulses of `dur_s`
+      %     duration on `chans` channels.
       %
       %     EX //
       %     reward_trigger( ni, 0, 50e-3 ); writes a 50ms pulse to channel
@@ -109,7 +135,9 @@ classdef NIInterface < handle
         return
       end
 
-      NIInterface.trigger_reward( chan, dur_s );
+      for i = 1:numel(chans)
+        NIInterface.trigger_reward( chans(i), dur_s );
+      end
     end
 
     function delete(obj)
@@ -129,13 +157,17 @@ classdef NIInterface < handle
     function trigger_reward(channel, dur_s)
       ni_mex( uint32(2), channel, dur_s );
     end
+    
+    function trigger_custom_pulse(channel, v, dur_s)
+      ni_mex( uint32(3), channel, v, dur_s );
+    end
 
     function res = update()
       res = ni_mex( uint32(1) );
     end
 
     function stop()
-      ni_mex( uint32(3) );
+      ni_mex( uint32(4) );
     end
   end
 end

@@ -30,4 +30,8 @@ void task::trigger_reward_pulse(int channel, float secs) {
   std::cout << "Would trigger on " << channel << " for " << secs << std::endl;
 }
 
+void task::trigger_pulse(int channel, float v, float secs) {
+  std::cout << "Would trigger on " << channel << " with voltage " << v << " for " << secs << std::endl;
+}
+
 } //  ni

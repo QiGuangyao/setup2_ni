@@ -105,12 +105,43 @@ void do_reward(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     mexErrMsgIdAndTxt(err_id, "Expected non-negative integer channel.");
   }
   
-  const double secs = (float)(*mxGetPr(prhs[1]));
+  const double secs = (double)(*mxGetPr(prhs[1]));
   if (secs < 0.0) {
     mexErrMsgIdAndTxt(err_id, "Expected non-negative duration.");
   }
   
   task::trigger_reward_pulse(int(channel), float(secs));
+}
+
+//  custom pulse
+void do_custom_pulse(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
+  check_input_outputs(nlhs, nrhs, 0, 3);
+  
+  const char* input_names[3]{"channel", "voltage", "seconds"};
+  for (int i = 0; i < 3; i++) {
+    if (!mxIsDouble(prhs[i]) || !mxIsScalar(prhs[i])) {
+      std::string msg{"Expected double scalar input for "};
+      msg += input_names[i];
+      mexErrMsgIdAndTxt(err_id, msg.c_str());
+    }
+  }
+  
+  const double channel = *mxGetPr(prhs[0]);
+  if (channel != std::floor(channel) || channel < 0.0) {
+    mexErrMsgIdAndTxt(err_id, "Expected non-negative integer channel.");
+  }
+  
+  const double v = (double)(*mxGetPr(prhs[1]));
+  if (v < 0.0) {
+    mexErrMsgIdAndTxt(err_id, "Expected non-negative voltage.");
+  }
+  
+  const double secs = (double)(*mxGetPr(prhs[2]));
+  if (secs < 0.0) {
+    mexErrMsgIdAndTxt(err_id, "Expected non-negative duration.");
+  }
+  
+  task::trigger_pulse(int(channel), float(v), float(secs));
 }
   
 } //  anon
@@ -153,8 +184,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
       break;
     }
     
-    //  stop
+    //  custom pulse
     case 3: {
+      do_custom_pulse(nlhs, plhs, nrhs, prhs);
+      break;
+    }
+    
+    //  stop
+    case 4: {
       do_stop(nlhs, plhs, nrhs, prhs);
       break;
     }

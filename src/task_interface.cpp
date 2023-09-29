@@ -50,6 +50,8 @@ public:
   struct PulseCommand {
     int channel;
     float seconds;
+    bool is_custom_voltage;
+    float custom_voltage;
   };
 public:
   void clear() {
@@ -127,10 +129,19 @@ void send_to_task(ToTask* to_task) {
   }
 }
 
-void push_pending_pulse(ToTask* to_task, int channel, float secs) {
+void push_pending_ttl_pulse(ToTask* to_task, int channel, float secs) {
   ToTask::PulseCommand cmd{};
   cmd.channel = channel;
   cmd.seconds = secs;
+  to_task->pending_pulses.push_back(cmd);
+}
+
+void push_pending_custom_pulse(ToTask* to_task, int channel, float v, float secs) {
+  ToTask::PulseCommand cmd{};
+  cmd.channel = channel;
+  cmd.seconds = secs;
+  cmd.custom_voltage = v;
+  cmd.is_custom_voltage = true;
   to_task->pending_pulses.push_back(cmd);
 }
 
@@ -186,12 +197,20 @@ void task_send(const ni::SampleBuffer* buffs, int num_buffs) {
   send_from_task(&globals.from_task, buffs, num_buffs);
 }
 
-//  trigger pending rewards
-void task_trigger_rewards() {
+//  trigger pending pulses
+void task_trigger_pulses() {
   const int num_pend = globals.to_task.pulses.size();
   for (int i = 0; i < num_pend; i++) {
-    auto pulse = globals.to_task.pulses.read();
-    if (!ni::write_analog_pulse(pulse.channel, true, pulse.seconds)) {
+    ToTask::PulseCommand pulse = globals.to_task.pulses.read();
+
+    bool err{};
+    if (pulse.is_custom_voltage) {
+      err = !ni::write_analog_pulse(pulse.channel, pulse.custom_voltage, pulse.seconds);
+    } else {
+      err = !ni::write_analog_pulse(pulse.channel, true, pulse.seconds);
+    }
+
+    if (err) {
       printf("Warning: failed to write analog pulse to channel: %d\n", pulse.channel);
     }
   }
@@ -212,7 +231,7 @@ void task_thread(const task::InitParams& params) {
 
       task_write_data(buffs, num_buffs);
       task_send(buffs, num_buffs);
-      task_trigger_rewards();
+      task_trigger_pulses();
     }
   } else {
     printf("Failed to initialize NI\n");
@@ -253,7 +272,12 @@ task::Sample task::read_latest_sample() {
 }
 
 void task::trigger_reward_pulse(int channel_index, float secs) {
-  push_pending_pulse(&globals.to_task, channel_index, secs);
+  push_pending_ttl_pulse(&globals.to_task, channel_index, secs);
+  send_to_task(&globals.to_task);
+}
+
+void task::trigger_pulse(int channel_index, float v, float secs) {
+  push_pending_custom_pulse(&globals.to_task, channel_index, v, secs);
   send_to_task(&globals.to_task);
 }
 
