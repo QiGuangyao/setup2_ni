@@ -129,7 +129,8 @@ classdef NIInterface < handle
       %     reward_trigger( ni, 0, 50e-3 ); writes a 50ms pulse to channel
       %     0 (the first channel).
       %
-      %     See also NIInterface/tick, NIInterface/initialize
+      %     See also NIInterface/tick, NIInterface/initialize,
+      %       NIInterface/pulse_trigger
       
       if ( ~obj.initialized )
         return
@@ -145,7 +146,7 @@ classdef NIInterface < handle
     end
   end
 
-  methods (Static = true)
+  methods (Static = true, Access = private)
     function r = get_empty_update_result()
       r = empty_update_result();
     end
