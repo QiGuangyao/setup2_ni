@@ -67,6 +67,11 @@ classdef AsyncVideoInterface < handle
         % parallel
         assert( ~isempty(obj.par_future) );
         wait( obj.par_future );
+
+        if ( ~isempty(obj.par_future.Error) )
+          warning( obj.par_future.Error.message );
+        end
+
         try
           res = fetchOutputs( obj.par_future );
         catch err

@@ -169,7 +169,7 @@ bool task_init_ni() {
   };
 
   ni::CounterOutputChannelDescriptor co_channel_descs[1]{
-    {"dev1/ctr0", 1.0, Config::video_frame_rate_hz, 0.5}
+    {"dev1/ctr0", 5.0, Config::video_frame_rate_hz, 0.5}
   };
 
   ni::InitParams params{};
