@@ -85,7 +85,7 @@ task::Sample construct_task_sample_from_sample_buffer(const ni::SampleBuffer& bu
     return {};
   }
 
-  assert(buff.num_channels == 6);
+  assert(buff.num_channels == 7);
 
   const int latest_sample_index = (buff.num_samples_per_channel - 1) * buff.num_channels;
   task::Sample sample{};
@@ -95,6 +95,7 @@ task::Sample construct_task_sample_from_sample_buffer(const ni::SampleBuffer& bu
   sample.x2 =     float(buff.data[latest_sample_index + 3]);
   sample.y2 =     float(buff.data[latest_sample_index + 4]);
   sample.pupil2 = float(buff.data[latest_sample_index + 5]);
+  sample.sync=    float(buff.data[latest_sample_index + 6]);
   return sample;
 }
 
@@ -154,13 +155,14 @@ bool task_init_ni() {
   const double minv = -5.0;
   const double maxv = 5.0;
 
-  ni::ChannelDescriptor ai_channel_descs[6]{
+  ni::ChannelDescriptor ai_channel_descs[7]{
     {"dev1/ai0", minv, maxv},  //  x1
     {"dev1/ai1", minv, maxv},  //  y1
     {"dev1/ai2", minv, maxv},  //  pup1
     {"dev1/ai3", minv, maxv},  //  x2
     {"dev1/ai4", minv, maxv},  //  y2
     {"dev1/ai5", minv, maxv},  //  pup2
+    {"dev1/ai6", minv, maxv},  //  sync pulse feedback
   };
 
   ni::ChannelDescriptor ao_channel_descs[2]{
@@ -176,7 +178,7 @@ bool task_init_ni() {
   params.sample_rate = Config::sample_rate;
   params.num_samples_per_channel = Config::num_samples_per_channel;
   params.analog_input_channels = ai_channel_descs;
-  params.num_analog_input_channels = 6;
+  params.num_analog_input_channels = 7;
   params.analog_output_channels = ao_channel_descs;
   params.num_analog_output_channels = 2;
   params.counter_output_channels = co_channel_descs;

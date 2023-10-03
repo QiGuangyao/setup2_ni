@@ -22,8 +22,8 @@ int main(int, char**) {
 
     auto samp = task::read_latest_sample();
 #if 1
-    printf("%0.4f, %0.4f, %0.4f | %0.4f, %0.4f, %0.4f\n",
-           samp.pupil1, samp.x1, samp.y1, samp.pupil2, samp.x2, samp.y2);
+    printf("(%0.4f) %0.4f, %0.4f, %0.4f | %0.4f, %0.4f, %0.4f\n",
+           samp.sync, samp.pupil1, samp.x1, samp.y1, samp.pupil2, samp.x2, samp.y2);
 #endif
 
 #if 1

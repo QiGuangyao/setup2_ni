@@ -15,6 +15,7 @@ struct Sample {
   float pupil2;
   float x2;
   float y2;
+  float sync;
 };
 
 void start_ni(const InitParams& params);
