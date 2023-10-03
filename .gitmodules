@@ -1,0 +1,3 @@
+[submodule "deps/network-events"]
+	path = deps/network-events
+	url = https://github.com/open-ephys-plugins/network-events/
