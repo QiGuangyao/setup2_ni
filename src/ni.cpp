@@ -418,11 +418,14 @@ bool start_daq(const ni::InitParams& params) {
 }
 
 void stop_daq() {
-  clear_task(&globals.ni_input_export_task);
-  clear_task(&globals.ni_analog_output_task);
   for (int i = 0; i < globals.num_counter_output_tasks; i++) {
     clear_task(&globals.ni_counter_output_tasks[i]);
   }
+
+  std::this_thread::sleep_for(std::chrono::seconds(15));
+
+  clear_task(&globals.ni_input_export_task);
+  clear_task(&globals.ni_analog_output_task);
 }
 
 bool analog_write(int channel, float v) {

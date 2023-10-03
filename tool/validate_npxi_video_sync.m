@@ -1,4 +1,4 @@
-function validate_npxi_video_sync(vid_file1, vid_file2, npxi_data_file)
+function validate_npxi_video_sync(vid_file1, vid_file2, ni_file, npxi_data_file)
 
 vid1 = VideoReader( vid_file1 );
 vid2 = VideoReader( vid_file2 );
@@ -8,40 +8,29 @@ nf2 = vid2.NumFrames;
 
 assert( nf1 == nf2 );
 
-%%
+%%  npxi
 
-dat_f = npxi_data_file;
-
-file_info = dir( dat_f );
-file_bytes = file_info.bytes;
-
-data_type = 'int16';
-bits_per_samp = 16;
-bytes_per_samp = bits_per_samp / 8;
-
-num_chans = 385;
-num_frames = file_bytes / bytes_per_samp / num_chans;
-assert( floor(num_frames) == num_frames );
-
-fid = fopen( dat_f, 'r' );
-try
-  samps = zeros( num_frames, num_chans, data_type );
-  for i = 1:num_frames
-    samps(i, :) = fread( fid, num_chans, data_type );
-  end
-catch err
-  warning( err.message );
-end
-
-fclose( fid );
-
-samps = double( samps );
-
-%%
-
-sync_chan = samps(:, end);
+npxi_samps = read_npxi_samples( npxi_data_file );
+sync_chan = npxi_samps(:, end);
 is_pos = sync_chan > 0.99;
-[isles, durs] = shared_utils.logical.find_islands( is_pos );
-assert( numel(isles) == nf1 * 2 );
+[npxi_isles, npxi_durs] = shared_utils.logical.find_islands( is_pos );
+assert( numel(npxi_isles) == nf1 * 2 || numel(npxi_isles) == nf1 * 2 - 1 ...
+  , ['Mismatch between # neuropix sync pulses and video frames: ' ...
+  , '%d sync pulses; %d frames'], numel(npxi_isles), nf1 * 2 ...
+);
 
-fprintf( '\n ok ! \n\n' );
+fprintf( '\n npxi: ok (%d) \n\n', numel(npxi_isles) );
+
+%%  ni
+
+ni_samps = read_ni_data( ni_file );
+ni_above_thresh = ni_samps(:, 7) > 4.7;
+[ni_isles, ~] = shared_utils.logical.find_islands( ni_above_thresh );
+assert( numel(ni_isles) == nf1 * 2 || numel(ni_isles) == nf1 * 2 - 1 ...
+  , ['Mismatch between # ni sync pulses and video frames: ' ...
+  , '%d sync pulses; %d frames'], numel(ni_isles), nf1 * 2 ...
+);
+
+fprintf( '\n ni: ok (%d) \n\n', numel(ni_isles) );
+
+end

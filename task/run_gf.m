@@ -1,5 +1,10 @@
 function run_gf()
 
+pool = gcp( 'nocreate' );
+if ( isempty(pool) )
+  parpool( 2 );
+end
+
 proj_p = fileparts( which(mfilename) );
 
 bypass_ni = false;
