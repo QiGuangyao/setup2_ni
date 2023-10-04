@@ -10,6 +10,27 @@ using namespace ni;
   
 const char* err_id = "ni_mex:main";
 
+mxArray* make_info_struct() {
+  constexpr int num_fields = 1;
+
+  const char* fieldnames[num_fields] = { 
+    "sync_pulse_init_timeout"
+  };
+
+  const task::MetaInfo meta_info = task::get_meta_info();
+  
+  //  struct
+  mxArray* info_array = mxCreateStructMatrix(1, 1, num_fields, fieldnames);
+
+  //  fields
+  mxArray* sync_pulse_init_timeout = mxCreateDoubleScalar(
+    meta_info.sync_pulse_init_timeout_s);
+
+  mxSetFieldByNumber(info_array, 0, 0, sync_pulse_init_timeout);
+    
+  return info_array;
+}  
+
 mxArray* make_sample_struct(const task::Sample& sample) {
   const char* fieldnames[6] = { 
     "pupil1", "x1", "y1",
@@ -52,6 +73,16 @@ void check_input_outputs(
     std::string msg = std::string{"Expected "} + expect + " inputs.";
     mexErrMsgIdAndTxt(err_id, msg.c_str());
   }
+}
+
+//  meta info
+void get_meta_info(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
+  check_input_outputs(nlhs, nrhs, 1, 0);
+
+  mxArray* info_struct = make_info_struct();
+  
+  //  outputs
+  plhs[0] = info_struct;
 }
 
 //  update
@@ -193,6 +224,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     //  stop
     case 4: {
       do_stop(nlhs, plhs, nrhs, prhs);
+      break;
+    }
+
+    //  meta info
+    case 5: {
+      get_meta_info(nlhs, plhs, nrhs, prhs);
       break;
     }
     

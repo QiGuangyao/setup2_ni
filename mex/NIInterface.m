@@ -32,6 +32,20 @@ classdef NIInterface < handle
       obj.dummy = dummy;
     end
 
+    function info = get_meta_info(obj)
+
+      %   GET_META_INFO -- Get information about build configuration.
+      %
+      %     info = get_meta_info( obj ); return static (i.e, compile-time)
+      %     meta-data about the ni interface / mex file. For example,
+      %     `info` specifies the initial timeout before the synchronization
+      %     pulse train is begun.
+      %
+      %     See also NIInterface
+
+      info = NIInterface.get_meta_info_impl();
+    end
+
     function initialize(obj, dst_file_p)
       
       %   INITIALIZE -- Initialize interface.
@@ -171,6 +185,10 @@ classdef NIInterface < handle
 
     function stop()
       ni_mex( uint32(4) );
+    end
+
+    function mi = get_meta_info_impl()
+      mi = ni_mex( uint32(5) );
     end
   end
 end

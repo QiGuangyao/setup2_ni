@@ -3,6 +3,7 @@
 #include <vector>
 #include <optional>
 #include <chrono>
+#include <functional>
 
 namespace ni {
 
@@ -70,7 +71,7 @@ struct SampleBuffer {
 
 bool init_ni(const InitParams& params);
 void update_ni();
-void terminate_ni();
+void terminate_ni(const std::function<void()>& on_stop);
 int read_sample_buffers(const SampleBuffer** buffs);
 
 time::TimePoint read_time0();

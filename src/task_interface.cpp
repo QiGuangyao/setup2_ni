@@ -26,6 +26,7 @@ struct Config {
   static constexpr double sample_rate = 1000.0;
   static constexpr int num_samples_per_channel = 5;
   static constexpr double video_frame_rate_hz = 90.0;
+  static constexpr double sync_pulse_init_timeout_s = 10.0;
 };
 
 /*
@@ -104,6 +105,12 @@ bool open_output_stream(OutputStream* stream, const char* file_p) {
   return stream->stream.good();
 }
 
+void flush_output_stream(OutputStream* stream) {
+  if (stream->stream.good()) {
+    stream->stream.flush();
+  }
+}
+
 void write_output_stream(OutputStream* stream, const ni::SampleBuffer& buff) {
   try {
     stream->stream.write((char*) buff.data, buff.num_samples() * sizeof(double));
@@ -171,7 +178,7 @@ bool task_init_ni() {
   };
 
   ni::CounterOutputChannelDescriptor co_channel_descs[1]{
-    {"dev1/ctr0", 10.0, Config::video_frame_rate_hz, 0.5}
+    {"dev1/ctr0", Config::sync_pulse_init_timeout_s, Config::video_frame_rate_hz, 0.5}
   };
 
   ni::InitParams params{};
@@ -218,6 +225,14 @@ void task_trigger_pulses() {
   }
 }
 
+//  flush pending buffers to disk
+void task_flush_data() {
+  const ni::SampleBuffer* buffs{};
+  const int num_buffs = ni::read_sample_buffers(&buffs);
+  task_write_data(buffs, num_buffs);
+  flush_output_stream(&globals.samples_file);
+}
+
 //  main task loop
 void task_thread(const task::InitParams& params) {
   if (!open_output_stream(&globals.samples_file, params.samples_file_p.c_str())) {
@@ -239,7 +254,9 @@ void task_thread(const task::InitParams& params) {
     printf("Failed to initialize NI\n");
   }
 
-  terminate_ni();
+  terminate_ni([]() {
+    task_flush_data();
+  });
 }
 
 } //  anon
@@ -281,6 +298,12 @@ void task::trigger_reward_pulse(int channel_index, float secs) {
 void task::trigger_pulse(int channel_index, float v, float secs) {
   push_pending_custom_pulse(&globals.to_task, channel_index, v, secs);
   send_to_task(&globals.to_task);
+}
+
+task::MetaInfo task::get_meta_info() {
+  task::MetaInfo result{};
+  result.sync_pulse_init_timeout_s = Config::sync_pulse_init_timeout_s;
+  return result;
 }
 
 } //  ni

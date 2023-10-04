@@ -523,7 +523,7 @@ void update_sample_index_sync() {
 
 bool ni::init_ni(const InitParams& params) {
   if (globals.initialized) {
-    terminate_ni();
+    terminate_ni(nullptr);
   }
 
   const auto t0 = time::now();
@@ -535,7 +535,7 @@ bool ni::init_ni(const InitParams& params) {
   init_input_data_handoff(params.num_analog_input_channels, params.num_samples_per_channel);
 
   if (!start_daq(params)) {
-    terminate_ni();
+    terminate_ni(nullptr);
     return false;
   } else {
     globals.initialized = true;
@@ -549,8 +549,13 @@ void ni::update_ni() {
   update_sample_index_sync();
 }
 
-void ni::terminate_ni() {
+void ni::terminate_ni(const std::function<void()>& on_stop) {
   stop_daq();
+
+  if (on_stop) {
+    on_stop();
+  }
+
   globals.daq_sample_buffer.clear();
   globals.num_samples_per_input_channel = 0;
   globals.num_analog_input_channels = 0;
