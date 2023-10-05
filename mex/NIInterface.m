@@ -81,6 +81,8 @@ classdef NIInterface < handle
         if ( res.any_dropped_sample_buffers )
           fprintf( ['\n\n\n\n This session of NI-daq data is incomplete!' ...
             , ' Some sample buffers were discarded \n\n\n'] );
+        elseif ( obj.verbose )
+          fprintf( '\n[NI-INFO]: OK: NI reports no samples were lost / discarded.' );
         end
         if ( obj.verbose )
           fprintf( '\n[NI-INFO]: %d NI-daq sample buffers were free, at minimum' ...
