@@ -72,6 +72,7 @@ struct SampleBuffer {
 bool init_ni(const InitParams& params);
 void update_ni();
 void terminate_ni(const std::function<void()>& on_stop);
+void terminate_ni_counter_output_tasks();
 int read_sample_buffers(const SampleBuffer** buffs);
 
 time::TimePoint read_time0();

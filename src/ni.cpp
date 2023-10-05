@@ -418,12 +418,7 @@ bool start_daq(const ni::InitParams& params) {
 }
 
 void stop_daq() {
-  for (int i = 0; i < globals.num_counter_output_tasks; i++) {
-    clear_task(&globals.ni_counter_output_tasks[i]);
-  }
-
-  std::this_thread::sleep_for(std::chrono::seconds(15));
-
+  terminate_ni_counter_output_tasks();
   clear_task(&globals.ni_input_export_task);
   clear_task(&globals.ni_analog_output_task);
 }
@@ -547,6 +542,14 @@ void ni::update_ni() {
   release_sample_buffers();
   update_output_pulses();
   update_sample_index_sync();
+}
+
+void ni::terminate_ni_counter_output_tasks() {
+  for (int i = 0; i < globals.num_counter_output_tasks; i++) {
+    clear_task(&globals.ni_counter_output_tasks[i]);
+  }
+
+  globals.num_counter_output_tasks = 0;
 }
 
 void ni::terminate_ni(const std::function<void()>& on_stop) {

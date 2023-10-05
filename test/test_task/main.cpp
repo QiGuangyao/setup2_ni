@@ -17,7 +17,7 @@ int main(int, char**) {
 
   auto t0 = time::now();
   auto pulse_t0 = time::now();
-  while (time::Duration(time::now() - t0).count() < 40.0) {
+  while (time::Duration(time::now() - t0).count() < 10.0) {
     task::update_ni();
 
     auto samp = task::read_latest_sample();

@@ -4,14 +4,16 @@ classdef TaskData < handle
     video_interface;
     save_p;
     save_filename;
+    matlab_time;
   end
   
   methods
-    function obj = TaskData(save_p, save_filename, video_interface)
+    function obj = TaskData(save_p, save_filename, video_interface, matlab_time)
       obj.entries = TrialRecord.empty;
       obj.save_p = save_p;
       obj.save_filename = save_filename;
       obj.video_interface = video_interface;
+      obj.matlab_time = matlab_time;
     end
 
     function n = num_entries(obj)
@@ -50,10 +52,13 @@ classdef TaskData < handle
         m2_calib = [];
       end
 
+      mt = get_saveable_data( obj.matlab_time );
+
       sd = struct( ...
           'trials', obj.entries ...
         , 'video_data', vid_data ...
         , 'far_plane_calibration', struct('m1', m1_calib, 'm2', m2_calib) ...
+        , 'matlab_time', mt ...
       );
     end
     

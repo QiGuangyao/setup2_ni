@@ -1,5 +1,8 @@
 function run_gf()
 
+% need parpool for async video interface. the pool should be
+% initialized before the call to parfeval(), since it usually takes a 
+% while to start.
 pool = gcp( 'nocreate' );
 if ( isempty(pool) )
   parpool( 2 );
@@ -12,10 +15,11 @@ bypass_video = false;
 bypass_trial_data = false;
 bypass_laser = false;
 bypass_npxi_events = false;
-disable_reward = true;
+bypass_reward = true;
 save_data = true;
 full_screens = true;
 max_num_trials = inf;
+use_clock_time = true;
 
 put_m1_in_center = true;
 put_m2_in_center = true;
@@ -56,7 +60,7 @@ reward_duration_s = 0.25;
   init
 %}
 
-t0 = tic();
+t0 = datetime();
 
 save_ident = strrep( datestr(now), ':', '_' );
 
@@ -76,22 +80,44 @@ else
   win_m2 = open_window( 'screen_index', 0, 'screen_rect', [800, 0, 1600, 800] );
 end
 
-% start video before ni
+% matlab time
+%
+%
+matlab_time = MatlabTimeSync( t0 );
+
+% video
+%
+%
 vid_interface = AsyncVideoInterface( bypass_video, save_p, false );
 initialize( vid_interface );
 
+% ni
+%
+%
 ni_interface = NIInterface( bypass_ni );
 initialize( ni_interface, fullfile(save_p, 'ni.bin') );
 ni_meta_info = get_meta_info( ni_interface );
 
+% gaze tracker
+%
+%
+gaze_tracker = NIGazeTracker();
+
+% neuro pixel events
+%
+%
 npxi_events = NPXIEventsInterface( bypass_npxi_events );
 initialize( npxi_events );
 
-gaze_tracker = ptb.Reference( NIInterface.get_empty_update_result() );
-
+% laser
+%
+% 
 laser_interface = LaserInterface( 'COM4', bypass_laser );
 initialize( laser_interface );
 
+% task
+%
+% 
 cross_im = ptb.Image( win_m1, imread(fullfile(proj_p, 'images/cross.jpg')) );
 
 %{
@@ -101,7 +127,7 @@ cross_im = ptb.Image( win_m1, imread(fullfile(proj_p, 'images/cross.jpg')) );
 if ( bypass_trial_data )
   trial_data = [];
 else
-  trial_data = TaskData( save_p, 'task_data.mat', vid_interface );
+  trial_data = TaskData( save_p, 'task_data.mat', vid_interface, matlab_time );
 end
 
 % wait for pulse train to begin.
@@ -120,19 +146,14 @@ while ( ~ptb.util.is_esc_down() && ...
   else
     trial_rec = push( trial_data );
   end
-  
-  trial_rec.fixation_with_block_rule = struct();
-  trial_rec.spatial_rule = struct();
 
   %{
     fixation with block rule
   %}
   
-  [fs_m1, fs_m2] = state_fixation_with_block_rule();  
-  trial_rec.fixation_with_block_rule.fixation_state_m1 = fs_m1;
-  trial_rec.fixation_with_block_rule.fixation_state_m2 = fs_m2;
+  [trial_rec.fixation_with_block_rule, acquired] = state_fixation_with_block_rule();
   
-  if ( ~fs_m1.acquired || ~fs_m2.acquired )
+  if ( ~acquired )
     % error
     error_timeout_state( error_duration );
     continue
@@ -142,11 +163,9 @@ while ( ~ptb.util.is_esc_down() && ...
     spatial rule
   %}
   
-  [fs_m1, fs_m2] = state_spatial_rule();
-  trial_rec.spatial_rule.fixation_state_m1 = fs_m1;
-  trial_rec.spatial_rule.fixation_state_m2 = fs_m2;
+  [trial_rec.spatial_rule, acquired] = state_spatial_rule();
 
-  if ( ~fs_m1.acquired || ~fs_m2.acquired )
+  if ( ~acquired )
     % error
     error_timeout_state( error_duration );
     continue
@@ -165,7 +184,7 @@ while ( ~ptb.util.is_esc_down() && ...
   %}
   
   if ( enable_spatial_cue )
-    [signaler_choice, actor_fixation] = state_spatial_cue();
+    trial_rec.spatial_cue = state_spatial_cue();
   end
 
   %{
@@ -173,7 +192,7 @@ while ( ~ptb.util.is_esc_down() && ...
   %}
   
   if ( enable_fix_delay )
-    [fs_m1, fs_m2] = state_fixation_delay();
+    trial_rec.fixation_delay = state_fixation_delay();
   end
   
   %{
@@ -181,7 +200,7 @@ while ( ~ptb.util.is_esc_down() && ...
   %}
     
   if ( enable_actor_response )
-    [signaler_choice, actor_fixation] = state_actor_response();
+    trial_rec.actor_response = state_actor_response();
   end
   
   %{
@@ -191,8 +210,6 @@ while ( ~ptb.util.is_esc_down() && ...
   if ( enable_response_feedback )
     state_response_feedback();
   end
-  
-  b = 10;
 end
 
 catch err
@@ -213,20 +230,26 @@ end
   states
 %}
 
-function [fs_m1, fs_m2] = state_fixation_with_block_rule()
+function [res, acquired] = state_fixation_with_block_rule()
   send_message( npxi_events, 'fixation_with_block_rule/enter' );
 
   loc_draw_cb = wrap_draw(...
     {@draw_fixation_crosses, @maybe_draw_gaze_cursors});
+
   [fs_m1, fs_m2] = static_fixation2( ...
     @time_cb, loc_draw_cb ...
     , @() m1_centered_rect(fix_cross_size), @get_m1_position ...
     , @() m2_centered_rect(fix_cross_size), @get_m2_position ...
     , @local_update ...
     , initial_fixation_duration, initial_fixation_state_duration );
+
+  res.fixation_state_m1 = fs_m1;
+  res.fixation_state_m2 = fs_m2;
+
+  acquired = fs_m1.acquired && fs_m2.acquired;
 end
 
-function [fs_m1, fs_m2] = state_spatial_rule()
+function [res, acquired] = state_spatial_rule()
   send_message( npxi_events, 'spatial_rule/enter' );
 
   loc_draw_cb = wrap_draw({@draw_spatial_rule, @maybe_draw_gaze_cursors});
@@ -236,6 +259,12 @@ function [fs_m1, fs_m2] = state_spatial_rule()
   , @() m2_centered_rect(fix_cross_size), @get_m2_position ...
   , @local_update, spatial_rule_fixation_duration, spatial_rule_state_duration );
 
+  res = struct();
+  res.fixation_state_m1 = fs_m1;
+  res.fixation_state_m2 = fs_m2;
+
+  acquired = fs_m1.acquired && fs_m2.acquired;
+
   function draw_spatial_rule()
     frame_m1_rect( [255, 0, 0], get(win_m1.Rect) );
     draw_texture( win_m1, cross_im, m1_centered_rect(fix_cross_size) );
@@ -243,7 +272,7 @@ function [fs_m1, fs_m2] = state_spatial_rule()
   end
 end
 
-function [signaler_choice, actor_fixation] = state_spatial_cue()
+function res = state_spatial_cue()
   send_message( npxi_events, 'spatial_cue/enter' );
 
   loc_draw_cb = wrap_draw({@draw_spatial_cues, @maybe_draw_gaze_cursors});
@@ -254,7 +283,7 @@ function [signaler_choice, actor_fixation] = state_spatial_cue()
   trigger( laser_interface, 0 );
 %   trigger( laser_interface, 1 );
 
-  [signaler_choice, actor_fixation] = state_choice(...
+  [loc_signaler_choice, loc_actor_fixation] = state_choice(...
       @time_cb, @local_update, loc_draw_cb ...
     , @get_m1_position, @get_m2_position ...
     , chooser_rects_cb, fixator_rects_cb ...
@@ -264,6 +293,10 @@ function [signaler_choice, actor_fixation] = state_spatial_cue()
   trigger( laser_interface, 0 );
 %   trigger( laser_interface, 1 );
 
+  res = struct();
+  res.signaler_choice = loc_signaler_choice;
+  res.actor_fixation = loc_actor_fixation;
+
   function draw_spatial_cues()
     signaler_rects = lr_rects( get(win_m1.Rect), [100, 100] );
 
@@ -272,7 +305,7 @@ function [signaler_choice, actor_fixation] = state_spatial_cue()
   end
 end
 
-function [fs_m1, fs_m2] = state_fixation_delay()
+function res = state_fixation_delay()
   send_message( npxi_events, 'fixation_delay/enter' );
 
   loc_draw_cb = []; % TODO
@@ -281,9 +314,13 @@ function [fs_m1, fs_m2] = state_fixation_delay()
     , @() centered_rect(win_m1.Center, [100, 100]), @get_m1_position ...
     , @() centered_rect(win_m2.Center, [100, 100]), @get_m2_position ...
     , @local_update, 0.15, 0.15 );
+
+  res = struct();
+  res.fixation_state_m1 = fs_m1;
+  res.fixation_state_m2 = fs_m2;
 end
 
-function [signaler_choice, actor_fixation] = state_actor_response()
+function res = state_actor_response()
   send_message( npxi_events, 'actor_response/enter' );
 
   loc_draw_cb = wrap_draw({@draw_response, @maybe_draw_gaze_cursors});  
@@ -295,6 +332,10 @@ function [signaler_choice, actor_fixation] = state_actor_response()
     , chooser_rects_cb, fixator_rects_cb ...
     , 0.6, 0.6, 0.6 ...
   );
+
+  res = struct();
+  res.signaler_choice = signaler_choice;
+  res.actor_fixation = actor_fixation;
 
   function draw_response()
     actor_rects = lr_rects( get(win_m2.Rect), [100, 100] );
@@ -338,22 +379,24 @@ end
 %}
 
 function deliver_reward(chans, duration_s)
-  if ( ~disable_reward )
+  if ( ~bypass_reward )
     reward_trigger( ni_interface, chans, duration_s );
   end
 end
 
 function r = time_cb()
-  r = toc( t0 );
+  if ( use_clock_time )
+    r = seconds( datetime() - t0 );
+  else
+    r = toc( t0 );
+  end
 end
 
 function m1_xy = get_m1_position()
   if ( put_m1_in_center )
     m1_xy = win_m1.Center;
   else
-    [x, y] = TransformNIGazeCoordinates.scale_coords_m1( ...
-      gaze_tracker.Value.x1, gaze_tracker.Value.y1 );
-    m1_xy = [x, y];
+    m1_xy = get_m1( gaze_tracker );
   end
 end
 
@@ -361,9 +404,7 @@ function m2_xy = get_m2_position()
   if ( put_m2_in_center )
     m2_xy = win_m2.Center;
   else
-    [x, y] = TransformNIGazeCoordinates.scale_coords_m2( ...
-      gaze_tracker.Value.x2, gaze_tracker.Value.y2 );
-    m2_xy = [x, y];
+    m2_xy = get_m2( gaze_tracker );
   end
 end
 
@@ -446,11 +487,13 @@ end
 
 function local_update()
   res = tick( ni_interface );
-  gaze_tracker.Value = res;
+  update( gaze_tracker, res );
 end
 
 function local_shutdown()
   fprintf( '\n\n\n\n Shutting down ...' );
+
+  matlab_time.finish( datetime() );
 
   delete( ni_interface );
   delete( trial_data );

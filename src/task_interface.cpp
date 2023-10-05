@@ -27,6 +27,7 @@ struct Config {
   static constexpr int num_samples_per_channel = 5;
   static constexpr double video_frame_rate_hz = 90.0;
   static constexpr double sync_pulse_init_timeout_s = 10.0;
+  static constexpr double sync_pulse_term_timeout_s = 10.0;
 };
 
 /*
@@ -233,7 +234,19 @@ void task_flush_data() {
   flush_output_stream(&globals.samples_file);
 }
 
-//  main task loop
+//  task loop
+void task_loop() {
+  update_ni();
+
+  const ni::SampleBuffer* buffs{};
+  const int num_buffs = ni::read_sample_buffers(&buffs);
+
+  task_write_data(buffs, num_buffs);
+  task_send(buffs, num_buffs);
+  task_trigger_pulses();
+}
+
+//  main task thread
 void task_thread(const task::InitParams& params) {
   if (!open_output_stream(&globals.samples_file, params.samples_file_p.c_str())) {
     return;
@@ -241,17 +254,17 @@ void task_thread(const task::InitParams& params) {
 
   if (task_init_ni()) {
     while (globals.task_thread_keep_processing.load()) {
-      update_ni();
-
-      const ni::SampleBuffer* buffs{};
-      const int num_buffs = ni::read_sample_buffers(&buffs);
-
-      task_write_data(buffs, num_buffs);
-      task_send(buffs, num_buffs);
-      task_trigger_pulses();
+      task_loop();
     }
-  } else {
-    printf("Failed to initialize NI\n");
+
+    //  terminate counter outputs
+    ni::terminate_ni_counter_output_tasks();
+
+    //  then wait for pulse train to finish
+    auto t0 = time::now();
+    while (time::Duration(time::now() - t0).count() < Config::sync_pulse_term_timeout_s) {
+      task_loop();
+    }
   }
 
   terminate_ni([]() {
