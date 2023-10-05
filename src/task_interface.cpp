@@ -26,7 +26,7 @@ struct Config {
   static constexpr double sample_rate = 1000.0;
   static constexpr int num_samples_per_channel = 5;
   static constexpr double video_frame_rate_hz = 90.0;
-  static constexpr double sync_pulse_init_timeout_s = 10.0;
+  static constexpr double sync_pulse_init_timeout_s = 15.0;
   static constexpr double sync_pulse_term_timeout_s = 10.0;
 };
 
@@ -76,6 +76,7 @@ struct {
 
   FromTask from_task;
   ToTask to_task;
+  task::RunInfo run_info{};
 } globals;
 
 /*
@@ -267,9 +268,13 @@ void task_thread(const task::InitParams& params) {
     }
   }
 
-  terminate_ni([]() {
+  auto ni_res = terminate_ni([]() {
     task_flush_data();
   });
+
+  globals.run_info.any_dropped_sample_buffers = ni_res.any_dropped_sample_buffers;
+  globals.run_info.min_num_sample_buffers = ni_res.min_num_sample_buffers;
+  globals.run_info.num_input_samples_acquired = ni_res.num_input_samples_acquired;
 }
 
 } //  anon
@@ -287,16 +292,19 @@ void task::update_ni() {
   send_to_task(&globals.to_task);
 }
 
-void task::stop_ni() {
+task::RunInfo task::stop_ni() {
   globals.task_thread_keep_processing.store(false);
   if (globals.task_thread) {
     globals.task_thread->join();
     globals.task_thread = nullptr;
   }
 
+  const task::RunInfo result = globals.run_info;
   globals.from_task.clear();
   globals.to_task.clear();
   globals.samples_file = {};
+  globals.run_info = {};
+  return result;
 }
 
 task::Sample task::read_latest_sample() {

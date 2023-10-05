@@ -58,6 +58,33 @@ mxArray* make_sample_struct(const task::Sample& sample) {
   return sample_array;
 }
 
+mxArray* make_run_info_struct(const task::RunInfo& res) {
+  static constexpr int num_fields = 3;
+
+  const char* fieldnames[num_fields] = { 
+    "min_num_sample_buffers", 
+    "any_dropped_sample_buffers",
+    "num_input_samples_acquired"
+  };
+  
+  //  struct
+  mxArray* info_array = mxCreateStructMatrix(1, 1, num_fields, fieldnames);
+
+  //  fields
+  mxArray* min_num_buffs = mxCreateDoubleScalar(
+    double(res.min_num_sample_buffers));
+  mxArray* any_dropped_buffs = mxCreateDoubleScalar(
+    double(res.any_dropped_sample_buffers));
+  mxArray* num_samples_acq = mxCreateDoubleScalar(
+    double(res.num_input_samples_acquired));
+
+  mxSetFieldByNumber(info_array, 0, 0, min_num_buffs);
+  mxSetFieldByNumber(info_array, 0, 1, any_dropped_buffs);
+  mxSetFieldByNumber(info_array, 0, 2, num_samples_acq);
+
+  return info_array;
+}
+
 void check_input_outputs(
   int nlhs, int nrhs, 
   std::optional<int> req_lhs, std::optional<int> req_rhs) {
@@ -114,8 +141,9 @@ void do_start(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 //  stop
 void do_stop(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
-  check_input_outputs(nlhs, nrhs, 0, 0);
-  task::stop_ni();
+  check_input_outputs(nlhs, nrhs, 1, 0);
+  auto res = task::stop_ni();
+  plhs[0] = make_run_info_struct(res);
 }
 
 //  reward

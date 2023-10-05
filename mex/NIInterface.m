@@ -11,6 +11,7 @@ classdef NIInterface < handle
   properties (SetAccess = private, GetAccess = public)
     dummy = false;
     initialized = false;
+    verbose = true;
   end
 
   methods
@@ -76,7 +77,17 @@ classdef NIInterface < handle
       %     See also NIInterface/initialize
       
       if ( obj.initialized )
-        NIInterface.stop();
+        res = NIInterface.stop();
+        if ( res.any_dropped_sample_buffers )
+          fprintf( ['\n\n\n\n This session of NI-daq data is incomplete!' ...
+            , ' Some sample buffers were discarded \n\n\n'] );
+        end
+        if ( obj.verbose )
+          fprintf( '\n[NI-INFO]: %d NI-daq sample buffers were free, at minimum' ...
+            , res.min_num_sample_buffers );
+          fprintf( '\n[NI-INFO]: %d NI-daq samples acquired' ...
+            , res.num_input_samples_acquired );
+        end
       end
 
       obj.initialized = false;
@@ -183,8 +194,8 @@ classdef NIInterface < handle
       res = ni_mex( uint32(1) );
     end
 
-    function stop()
-      ni_mex( uint32(4) );
+    function res = stop()
+      res = ni_mex( uint32(4) );
     end
 
     function mi = get_meta_info_impl()

@@ -1,7 +1,7 @@
 classdef AsyncVideoInterface < handle
   properties (Constant = true)
     FRAME_RATE = 45;
-    INITIAL_TIMEOUT = 15;
+    INITIAL_TIMEOUT = 30;
   end
 
   properties (SetAccess = private)
@@ -105,6 +105,7 @@ end
 function res = do_capture(frame_rate, dst_p, init_timeout)
 
 res = [];
+success = true;
 
 % When this amount of time has elapsed with no new frames available, 
 % capture will be stopped.
@@ -125,25 +126,28 @@ while ( ~vi1.FramesAvailable || ~vi2.FramesAvailable )
   end
   if ( toc(t0) > init_timeout )
     fprintf( 'Failed to start capturing frames within %0.3f s\n', init_timeout );
-    return
-  end
-end
-
-fprintf( '\n Began' );
-
-t = tic;
-while ( true )
-  drawnow;
-
-  if ( vi1.FramesAvailable || vi2.FramesAvailable )
-    t = tic;
-  elseif ( toc(t) > ACQ_TIMEOUT )
-    fprintf( '\n No frames received within %0.3f s; stopping acquisition.' ...
-      , ACQ_TIMEOUT );
+    success = false;
     break
   end
 end
 
+if ( success )
+  fprintf( '\n Began' );
+  
+  t = tic;
+  while ( true )
+    drawnow;
+  
+    if ( vi1.FramesAvailable || vi2.FramesAvailable )
+      t = tic;
+    elseif ( toc(t) > ACQ_TIMEOUT )
+      fprintf( '\n No frames received within %0.3f s; stopping acquisition.' ...
+        , ACQ_TIMEOUT );
+      break
+    end
+  end
+end
+  
 stop( vi1 );
 stop( vi2 );
 
@@ -157,11 +161,13 @@ if ( ~isempty(vw2) )
   release( vw2 );
 end
 
-imaqreset;
+if ( success )
+  res = struct();
+  res.vs1 = vs1;
+  res.vs2 = vs2;
+end
 
-res = struct();
-res.vs1 = vs1;
-res.vs2 = vs2;
+imaqreset;
 
 end
 
@@ -169,6 +175,7 @@ function [vi1, vid_writer1, vid_sync1] = make_components(index, frame_rate, vid_
 
 vi1 = videoinput( 'gentl', index );
 triggerconfig( vi1, 'hardware', 'DeviceSpecific' );
+% set_exposure_time_from_fps( vi1, frame_rate, 1e3 );
 
 % video writer
 vid_fname = sprintf( 'video_%d.mp4', index );
@@ -221,5 +228,13 @@ end
 vid_sync.Value.vid_time(end+1, :) = cb_data.Data.AbsTime;
 vid_sync.Value.frame_num(end+1, 1) = cb_data.Data.FrameNumber;
 vid_sync.Value.vid_fname(end+1, 1) = string( vid_name );
+
+end
+
+function set_exposure_time_from_fps(vid1, fps, pad_us)
+
+src = getselectedsource( vid1 );
+desired_exposure_time_us = (1 / fps) * 1e6 - pad_us;
+set( src, 'ExposureTime', desired_exposure_time_us );
 
 end

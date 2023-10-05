@@ -7,6 +7,8 @@
 #include <NIDAQmx.h>
 #endif
 
+#define TRACK_MIN_NUM_SAMPLE_BUFFERS (1)
+
 #include <vector>
 #include <cassert>
 #include <optional>
@@ -23,7 +25,7 @@ using namespace ni;
  */
 
 struct Config {
-  static constexpr int input_sample_buffer_ring_buffer_capacity = 16;
+  static constexpr int input_sample_buffer_ring_buffer_capacity = 512;
   static constexpr uint64_t input_sample_index_sync_interval = 10000;
 };
 
@@ -66,8 +68,19 @@ struct OutputPulseQueue {
 };
 
 struct StaticSampleBufferArray {
+  int get_min_num_sample_buffers() const {
+#if TRACK_MIN_NUM_SAMPLE_BUFFERS
+    return min_num_buffers.load();
+#else
+    return 0;
+#endif
+  }
+
   void clear() {
     num_buffers = 0;
+#if TRACK_MIN_NUM_SAMPLE_BUFFERS
+    min_num_buffers.store(Config::input_sample_buffer_ring_buffer_capacity);
+#endif
   }
 
   void push(ni::SampleBuffer buff) {
@@ -76,6 +89,9 @@ struct StaticSampleBufferArray {
   }
 
   std::optional<ni::SampleBuffer> pop_back() {
+#if TRACK_MIN_NUM_SAMPLE_BUFFERS
+    min_num_buffers.store(std::min(min_num_buffers.load(), num_buffers - 1));
+#endif
     if (num_buffers > 0) {
       return buffers[--num_buffers];
     } else {
@@ -85,6 +101,9 @@ struct StaticSampleBufferArray {
 
   ni::SampleBuffer buffers[Config::input_sample_buffer_ring_buffer_capacity]{};
   int num_buffers{};
+#if TRACK_MIN_NUM_SAMPLE_BUFFERS
+  std::atomic<int> min_num_buffers{Config::input_sample_buffer_ring_buffer_capacity};
+#endif
 };
 
 struct NITask {
@@ -126,6 +145,7 @@ struct {
   OutputPulseQueue output_pulse_queue;
   time::TimePoint last_time{};
   bool first_time{};
+  std::atomic<bool> any_dropped_sample_buffers{false};
 
   NIInputSampleSyncPoints input_sample_sync_points;
 
@@ -171,6 +191,7 @@ void ni_maybe_send_sample_buffer(
   const double* read_buff, uint32_t num_samples, uint64_t sample0_index, double sample0_time) {
   //
   if (globals.send_from_ni_daq.full()) {
+    globals.any_dropped_sample_buffers.store(true);
     return;
   }
 
@@ -552,12 +573,17 @@ void ni::terminate_ni_counter_output_tasks() {
   globals.num_counter_output_tasks = 0;
 }
 
-void ni::terminate_ni(const std::function<void()>& on_stop) {
+ni::RunInfo ni::terminate_ni(const std::function<void()>& on_stop) {
   stop_daq();
 
   if (on_stop) {
     on_stop();
   }
+
+  ni::RunInfo result{};
+  result.min_num_sample_buffers = globals.available_to_send_to_ui.get_min_num_sample_buffers();
+  result.any_dropped_sample_buffers = globals.any_dropped_sample_buffers.load();
+  result.num_input_samples_acquired = globals.ni_num_input_samples_acquired;
 
   globals.daq_sample_buffer.clear();
   globals.num_samples_per_input_channel = 0;
@@ -573,7 +599,10 @@ void ni::terminate_ni(const std::function<void()>& on_stop) {
   globals.time0 = {};
   globals.output_pulse_queue.clear();
   globals.input_sample_sync_points.clear();
+  globals.any_dropped_sample_buffers.store(false);
   globals.initialized = false;
+
+  return result;
 }
 
 int ni::read_sample_buffers(const SampleBuffer** buffs) {

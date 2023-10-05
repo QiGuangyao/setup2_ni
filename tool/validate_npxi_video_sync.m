@@ -8,6 +8,7 @@ nf2 = vid2.NumFrames;
 
 try
   assert( nf1 == nf2 );
+  fprintf( '\n frames: ok (%d) \n\n', nf1 );
 catch
   warning( 'Num frames did not match between cameras: %d vs %d', nf1, nf2 );
 end

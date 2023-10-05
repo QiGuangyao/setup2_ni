@@ -22,9 +22,15 @@ struct MetaInfo {
   float sync_pulse_init_timeout_s;
 };
 
+struct RunInfo {
+  int min_num_sample_buffers;
+  bool any_dropped_sample_buffers;
+  uint64_t num_input_samples_acquired;
+};
+
 void start_ni(const InitParams& params);
 void update_ni();
-void stop_ni();
+RunInfo stop_ni();
 Sample read_latest_sample();
 void trigger_reward_pulse(int channel_index, float secs);
 void trigger_pulse(int channel_index, float v, float secs);

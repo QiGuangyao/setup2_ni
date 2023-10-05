@@ -69,9 +69,15 @@ struct SampleBuffer {
   double sample0_time;
 };
 
+struct RunInfo {
+  int min_num_sample_buffers;
+  bool any_dropped_sample_buffers;
+  uint64_t num_input_samples_acquired;
+};
+
 bool init_ni(const InitParams& params);
 void update_ni();
-void terminate_ni(const std::function<void()>& on_stop);
+RunInfo terminate_ni(const std::function<void()>& on_stop);
 void terminate_ni_counter_output_tasks();
 int read_sample_buffers(const SampleBuffer** buffs);
 
