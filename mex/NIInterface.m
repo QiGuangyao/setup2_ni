@@ -175,6 +175,17 @@ classdef NIInterface < handle
     function r = get_empty_update_result()
       r = empty_update_result();
     end
+
+    function r = get_sync_pulse_hz()
+
+      %   GET_SYNC_PULSE_HZ -- Get counter output synchronization pulse
+      %     frequency.
+      %
+      %     See also NIInterface
+
+      res = NIInterface.get_meta_info_impl();
+      r = res.sync_pulse_hz;
+    end
   end
 
   methods (Static = true, Access = private)

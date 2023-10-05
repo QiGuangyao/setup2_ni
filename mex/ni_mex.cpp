@@ -11,10 +11,11 @@ using namespace ni;
 const char* err_id = "ni_mex:main";
 
 mxArray* make_info_struct() {
-  constexpr int num_fields = 1;
+  constexpr int num_fields = 2;
 
   const char* fieldnames[num_fields] = { 
-    "sync_pulse_init_timeout"
+    "sync_pulse_init_timeout",
+    "sync_pulse_hz"
   };
 
   const task::MetaInfo meta_info = task::get_meta_info();
@@ -25,8 +26,11 @@ mxArray* make_info_struct() {
   //  fields
   mxArray* sync_pulse_init_timeout = mxCreateDoubleScalar(
     meta_info.sync_pulse_init_timeout_s);
+  mxArray* sync_pulse_hz = mxCreateDoubleScalar(
+    meta_info.sync_pulse_hz);
 
   mxSetFieldByNumber(info_array, 0, 0, sync_pulse_init_timeout);
+  mxSetFieldByNumber(info_array, 0, 1, sync_pulse_hz);
     
   return info_array;
 }  

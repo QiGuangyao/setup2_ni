@@ -1,7 +1,10 @@
 classdef AsyncVideoInterface < handle
   properties (Constant = true)
-    FRAME_RATE = 45;
     INITIAL_TIMEOUT = 30;
+  end
+
+  properties (Access = private)
+    FRAME_RATE;
   end
 
   properties (SetAccess = private)
@@ -25,6 +28,10 @@ classdef AsyncVideoInterface < handle
       obj.dummy = dummy;
       obj.video_writer_output_p = dst_p;
       obj.serial = serial;
+
+      % @NOTE: The video cameras trigger at half the rate of the counter
+      % output pulse.
+      obj.FRAME_RATE = NIInterface.get_sync_pulse_hz() * 0.5;
     end
 
     function initialize(obj)

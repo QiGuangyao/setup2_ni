@@ -20,6 +20,7 @@ struct Sample {
 
 struct MetaInfo {
   float sync_pulse_init_timeout_s;
+  double sync_pulse_hz;
 };
 
 struct RunInfo {

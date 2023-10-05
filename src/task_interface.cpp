@@ -25,7 +25,12 @@ namespace {
 struct Config {
   static constexpr double sample_rate = 1000.0;
   static constexpr int num_samples_per_channel = 5;
-  static constexpr double video_frame_rate_hz = 90.0;
+  static constexpr double sync_pulse_hz = 90.0;
+  //  @NOTE: This is the time between initializing the sync pulse counter
+  //  output task and the pulse train beginning. This amount of time must
+  //  be longer than the time required to initialize / prepare any receivers
+  //  of this pulse (e.g., cameras), and will probably have to be experimentally
+  //  determined.
   static constexpr double sync_pulse_init_timeout_s = 15.0;
   static constexpr double sync_pulse_term_timeout_s = 10.0;
 };
@@ -180,7 +185,7 @@ bool task_init_ni() {
   };
 
   ni::CounterOutputChannelDescriptor co_channel_descs[1]{
-    {"dev1/ctr0", Config::sync_pulse_init_timeout_s, Config::video_frame_rate_hz, 0.5}
+    {"dev1/ctr0", Config::sync_pulse_init_timeout_s, Config::sync_pulse_hz, 0.5}
   };
 
   ni::InitParams params{};
@@ -324,6 +329,7 @@ void task::trigger_pulse(int channel_index, float v, float secs) {
 task::MetaInfo task::get_meta_info() {
   task::MetaInfo result{};
   result.sync_pulse_init_timeout_s = Config::sync_pulse_init_timeout_s;
+  result.sync_pulse_hz = Config::sync_pulse_hz;
   return result;
 }
 
