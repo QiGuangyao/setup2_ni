@@ -5,6 +5,13 @@
 Running the task:
 --------------
 
+(0). If the task computer is on and the NeuroPixels PCIe chassis is off, shut
+  down the task computer. When the task computer is fully powered off, 
+  turn on the NeuroPixels PCIe chassis. Then turn on the task computer.
+
+  Similarly, at the end of the recording session, shut down the computer
+  before turning off the NeuroPixels PCIe chassis.
+
 1. If not already open, open the Open-ephys GUI. Take note of the command
   window that appears -- it should indicate that one or more headstages are
   found on ports (1-4). This is important since it won't be possible to
