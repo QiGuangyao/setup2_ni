@@ -88,13 +88,18 @@ initialize( task_interface );
 % trial data
 %
 %
+
+task_params = struct( 'timing', timing );
+
 if ( bypass_trial_data )
   trial_data = [];
 else
   trial_data = TaskData( ...
     save_p, 'task_data.mat' ...
     , task_interface.video_interface ...
-    , task_interface.matlab_time );
+    , task_interface.matlab_time ...
+    , task_params ...
+  );
 end
 
 % @NOTE: register trial data with task interface

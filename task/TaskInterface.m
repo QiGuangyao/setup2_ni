@@ -8,7 +8,7 @@ classdef TaskInterface < handle
     put_m1_gaze_in_center = false;
     put_m2_gaze_in_center = false;
 
-    bypass_video = true;
+    bypass_video = false;
     bypass_ni = false;
     bypass_npxi_events = false;
     bypass_laser = false;
