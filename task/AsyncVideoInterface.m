@@ -22,6 +22,10 @@ classdef AsyncVideoInterface < handle
 
   methods
     function obj = AsyncVideoInterface(dummy, dst_p, serial)
+      if ( nargin < 3 )
+        serial = false;
+      end
+
       validateattributes( dummy, {'logical'}, {'scalar'}, mfilename, 'dummy' );
       validateattributes( dst_p, {'char'}, {'scalartext'}, mfilename, 'dst_p' );
       validateattributes( serial, {'logical'}, {'scalar'}, mfilename, 'serial' );

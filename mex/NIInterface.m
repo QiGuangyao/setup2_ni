@@ -70,6 +70,25 @@ classdef NIInterface < handle
       obj.initialized = true;
     end
 
+    function wait_for_sync_pulse_train_to_likely_begin(obj)
+
+      %   WAIT_FOR_SYNC_PULSE_TRAIN_TO_LIKELY_BEGIN
+      %
+      %     Pause for a number of seconds such that, with high probability,
+      %     the sync pulse train will have begun by the time this function
+      %     returns.
+      %
+      %     This is an approximate timeout; you may with to add padding
+      %     to the timeout for a "more robust" solution.
+      %
+      %     See also NIInterface
+
+      if ( ~obj.dummy )
+        ni_meta_info = get_meta_info( obj );
+        WaitSecs( ni_meta_info.sync_pulse_init_timeout );
+      end
+    end
+
     function shutdown(obj)
       
       %   SHUTDOWN -- Deinitialize interface.

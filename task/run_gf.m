@@ -10,19 +10,11 @@ end
 
 proj_p = fileparts( which(mfilename) );
 
-bypass_ni = false;
-bypass_video = false;
 bypass_trial_data = false;
-bypass_laser = false;
-bypass_npxi_events = false;
-bypass_reward = true;
 save_data = true;
-full_screens = true;
+full_screens = false;
 max_num_trials = inf;
-use_clock_time = true;
 
-put_m1_in_center = true;
-put_m2_in_center = true;
 draw_m1_gaze = true;
 draw_m2_gaze = true;
 
@@ -35,13 +27,14 @@ enable_response_feedback = true;
   timing parameters
 %}
 
-initial_fixation_duration = 0.15;
-initial_fixation_state_duration = 0.175;
-spatial_rule_fixation_duration = 0.15;
-spatial_rule_state_duration = 0.175;
-iti_duration = 1;
-error_duration = 1; % timeout in case of failure to fixate
-feedback_duration = 1;
+timing = struct();
+timing.initial_fixation_duration = 0.15;
+timing.initial_fixation_state_duration = 0.175;
+timing.spatial_rule_fixation_duration = 0.15;
+timing.spatial_rule_state_duration = 0.175;
+timing.iti_duration = 1;
+timing.error_duration = 1; % timeout in case of failure to fixate
+timing.feedback_duration = 1;
 
 %{
   stimuli parameters
@@ -59,8 +52,6 @@ reward_duration_s = 0.25;
 %{
   init
 %}
-
-t0 = datetime();
 
 save_ident = strrep( datestr(now), ':', '_' );
 
@@ -80,40 +71,28 @@ else
   win_m2 = open_window( 'screen_index', 0, 'screen_rect', [800, 0, 1600, 800] );
 end
 
-% matlab time
-%
-%
-matlab_time = MatlabTimeSync( t0 );
-
-% video
-%
-%
-vid_interface = AsyncVideoInterface( bypass_video, save_p, false );
-initialize( vid_interface );
-
-% ni
-%
-%
-ni_interface = NIInterface( bypass_ni );
-initialize( ni_interface, fullfile(save_p, 'ni.bin') );
-ni_meta_info = get_meta_info( ni_interface );
-
-% gaze tracker
-%
-%
-gaze_tracker = NIGazeTracker();
-
-% neuro pixel events
-%
-%
-npxi_events = NPXIEventsInterface( bypass_npxi_events );
-initialize( npxi_events );
-
-% laser
+% task interface
 %
 % 
-laser_interface = LaserInterface( 'COM4', bypass_laser );
-initialize( laser_interface );
+t0 = datetime();
+task_interface = TaskInterface( t0, save_p );
+initialize( task_interface );
+
+% trial data
+%
+%
+if ( bypass_trial_data )
+  trial_data = [];
+else
+  trial_data = TaskData( ...
+    save_p, 'task_data.mat' ...
+    , task_interface.video_interface ...
+    , task_interface.matlab_time );
+end
+
+task_interface.task_data = trial_data;
+
+trial_generator = DefaultTrialGenerator();
 
 % task
 %
@@ -123,15 +102,6 @@ cross_im = ptb.Image( win_m1, imread(fullfile(proj_p, 'images/cross.jpg')) );
 %{
   main trial sequence
 %}
-
-if ( bypass_trial_data )
-  trial_data = [];
-else
-  trial_data = TaskData( save_p, 'task_data.mat', vid_interface, matlab_time );
-end
-
-% wait for pulse train to begin.
-WaitSecs( ni_meta_info.sync_pulse_init_timeout );
 
 err = [];
 
@@ -147,6 +117,9 @@ while ( ~ptb.util.is_esc_down() && ...
     trial_rec = push( trial_data );
   end
 
+  trial_desc = next( trial_generator );
+  trial_rec.trial_descriptor = trial_desc;
+
   %{
     fixation with block rule
   %}
@@ -155,7 +128,7 @@ while ( ~ptb.util.is_esc_down() && ...
   
   if ( ~acquired )
     % error
-    error_timeout_state( error_duration );
+    error_timeout_state( timing.error_duration );
     continue
   end
 
@@ -163,16 +136,17 @@ while ( ~ptb.util.is_esc_down() && ...
     spatial rule
   %}
   
-  [trial_rec.spatial_rule, acquired] = state_spatial_rule();
+  is_gaze_trial = trial_desc.is_gaze_trial;
+  [trial_rec.spatial_rule, acquired] = state_spatial_rule( is_gaze_trial );
 
   if ( ~acquired )
     % error
-    error_timeout_state( error_duration );
+    error_timeout_state( timing.error_duration );
     continue
   end
 
   if ( 1 )  % bridge reward
-    deliver_reward( 0:1, reward_duration_s );
+    deliver_reward( task_interface, 0:1, reward_duration_s );
   end
 
   if ( 0 )
@@ -184,7 +158,9 @@ while ( ~ptb.util.is_esc_down() && ...
   %}
   
   if ( enable_spatial_cue )
-    trial_rec.spatial_cue = state_spatial_cue();
+    swap_signaler_dir = trial_desc.swap_signaler_dir;
+    laser_index = trial_desc.laser_index;
+    trial_rec.spatial_cue = state_spatial_cue( swap_signaler_dir, laser_index );
   end
 
   %{
@@ -210,6 +186,12 @@ while ( ~ptb.util.is_esc_down() && ...
   if ( enable_response_feedback )
     state_response_feedback();
   end
+
+  %{
+    iti
+  %}
+
+  state_iti();
 end
 
 catch err
@@ -231,7 +213,7 @@ end
 %}
 
 function [res, acquired] = state_fixation_with_block_rule()
-  send_message( npxi_events, 'fixation_with_block_rule/enter' );
+  send_message( task_interface.npxi_events, 'fixation_with_block_rule/enter' );
 
   loc_draw_cb = wrap_draw(...
     {@draw_fixation_crosses, @maybe_draw_gaze_cursors});
@@ -241,7 +223,7 @@ function [res, acquired] = state_fixation_with_block_rule()
     , @() m1_centered_rect(fix_cross_size), @get_m1_position ...
     , @() m2_centered_rect(fix_cross_size), @get_m2_position ...
     , @local_update ...
-    , initial_fixation_duration, initial_fixation_state_duration );
+    , timing.initial_fixation_duration, timing.initial_fixation_state_duration );
 
   res.fixation_state_m1 = fs_m1;
   res.fixation_state_m2 = fs_m2;
@@ -249,15 +231,17 @@ function [res, acquired] = state_fixation_with_block_rule()
   acquired = fs_m1.acquired && fs_m2.acquired;
 end
 
-function [res, acquired] = state_spatial_rule()
-  send_message( npxi_events, 'spatial_rule/enter' );
+function [res, acquired] = state_spatial_rule(is_gaze_trial)
+  send_message( task_interface.npxi_events, 'spatial_rule/enter' );
+
+  actor_win = win_m1;
 
   loc_draw_cb = wrap_draw({@draw_spatial_rule, @maybe_draw_gaze_cursors});
   [fs_m1, fs_m2] = static_fixation2( ...
     @time_cb, loc_draw_cb ...
   , @() m1_centered_rect(fix_cross_size), @get_m1_position ...
   , @() m2_centered_rect(fix_cross_size), @get_m2_position ...
-  , @local_update, spatial_rule_fixation_duration, spatial_rule_state_duration );
+  , @local_update, timing.spatial_rule_fixation_duration, timing.spatial_rule_state_duration );
 
   res = struct();
   res.fixation_state_m1 = fs_m1;
@@ -266,47 +250,61 @@ function [res, acquired] = state_spatial_rule()
   acquired = fs_m1.acquired && fs_m2.acquired;
 
   function draw_spatial_rule()
-    frame_m1_rect( [255, 0, 0], get(win_m1.Rect) );
+    if ( is_gaze_trial )
+      color = [255, 0, 0];
+    else
+      color = [0, 0, 255];
+    end
+
+    frame_rect( actor_win, color, get(actor_win.Rect) );
     draw_texture( win_m1, cross_im, m1_centered_rect(fix_cross_size) );
     draw_texture( win_m2, cross_im, m2_centered_rect(fix_cross_size) );
   end
 end
 
-function res = state_spatial_cue()
-  send_message( npxi_events, 'spatial_cue/enter' );
+function res = state_spatial_cue(swap_signaler_dir, laser_index)
+  send_message( task_interface.npxi_events, 'spatial_cue/enter' );
+
+  actor_win = win_m1;
+  signaler_win = win_m2;
+
+  actor_pos = @get_m1_position;
+  signaler_pos = @get_m2_position;
 
   loc_draw_cb = wrap_draw({@draw_spatial_cues, @maybe_draw_gaze_cursors});
-  chooser_rects_cb = @() lr_rects(get(win_m1.Rect), [100, 100]);
-  fixator_rects_cb = @() m2_centered_rect([100, 100]);
+  signaler_rects_cb = @() lr_rects(get(signaler_win.Rect), [100, 100]);
+  actor_rects_cb = @() centered_rect(actor_win.Center, [100, 100]);
 
   state_time = 0.6;
-  trigger( laser_interface, 0 );
-%   trigger( laser_interface, 1 );
+  trigger( task_interface.laser_interface, laser_index );
 
   [loc_signaler_choice, loc_actor_fixation] = state_choice(...
       @time_cb, @local_update, loc_draw_cb ...
-    , @get_m1_position, @get_m2_position ...
-    , chooser_rects_cb, fixator_rects_cb ...
+    , signaler_pos, actor_pos ...
+    , signaler_rects_cb, actor_rects_cb ...
     , state_time, state_time, state_time ...
   );
 
-  trigger( laser_interface, 0 );
-%   trigger( laser_interface, 1 );
+  trigger( task_interface.laser_interface, laser_index );
 
   res = struct();
   res.signaler_choice = loc_signaler_choice;
   res.actor_fixation = loc_actor_fixation;
 
   function draw_spatial_cues()
-    signaler_rects = lr_rects( get(win_m1.Rect), [100, 100] );
+    signaler_rects = lr_rects( get(signaler_win.Rect), [100, 100] );
 
-    fill_m1_oval( [255, 255, 255], signaler_rects{1} );
-    fill_m1_rect( [255, 255, 255], signaler_rects{2} );
+    if ( swap_signaler_dir )
+      signaler_rects = fliplr( signaler_rects );
+    end
+
+    fill_oval( signaler_win, [255, 255, 255], signaler_rects{1} );
+    fill_rect( signaler_win, [255, 255, 255], signaler_rects{2} );
   end
 end
 
 function res = state_fixation_delay()
-  send_message( npxi_events, 'fixation_delay/enter' );
+  send_message( task_interface.npxi_events, 'fixation_delay/enter' );
 
   loc_draw_cb = []; % TODO
   [fs_m1, fs_m2] = static_fixation2( ...
@@ -321,14 +319,20 @@ function res = state_fixation_delay()
 end
 
 function res = state_actor_response()
-  send_message( npxi_events, 'actor_response/enter' );
+  send_message( task_interface.npxi_events, 'actor_response/enter' );
+
+  chooser_win = win_m1;
+  chooser_pos = @get_m1_position;
+
+  fixator_win = win_m2;
+  fixator_pos = @get_m2_position;
 
   loc_draw_cb = wrap_draw({@draw_response, @maybe_draw_gaze_cursors});  
-  chooser_rects_cb = @() lr_rects(get(win_m2.Rect), [100, 100]);
-  fixator_rects_cb = @() m1_centered_rect([100, 100]);
+  chooser_rects_cb = @() lr_rects(get(chooser_win.Rect), [100, 100]);
+  fixator_rects_cb = @() centered_rect(fixator_win.Center, [100, 100]);
   [signaler_choice, actor_fixation] = state_choice(...
       @time_cb, @local_update, loc_draw_cb ...
-    , @get_m2_position, @get_m1_position ...
+    , chooser_pos, fixator_pos ...
     , chooser_rects_cb, fixator_rects_cb ...
     , 0.6, 0.6, 0.6 ...
   );
@@ -338,31 +342,31 @@ function res = state_actor_response()
   res.actor_fixation = actor_fixation;
 
   function draw_response()
-    actor_rects = lr_rects( get(win_m2.Rect), [100, 100] );
+    actor_rects = lr_rects( get(chooser_win.Rect), [100, 100] );
 
-    fill_m2_rect( [255, 255, 255], actor_rects{1} );
-    fill_m2_rect( [255, 255, 255], actor_rects{2} );
+    fill_rect( chooser_win, [255, 255, 255], actor_rects{1} );
+    fill_rect( chooser_win, [255, 255, 255], actor_rects{2} );
   end
 end
 
 function state_response_feedback()
-  send_message( npxi_events, 'response_feedback/enter' );
+  send_message( task_interface.npxi_events, 'response_feedback/enter' );
 
   static_fixation2( ...
     @time_cb, wrap_draw({}) ...
   , @() m1_centered_rect(fix_cross_size), @get_m1_position ...
   , @() m2_centered_rect(fix_cross_size), @get_m2_position ...
-  , @local_update, feedback_duration, feedback_duration );
+  , @local_update, timing.feedback_duration, timing.feedback_duration );
 end
 
 function state_iti()
-  send_message( npxi_events, 'iti/enter' );
+  send_message( task_interface.npxi_events, 'iti/enter' );
 
   static_fixation2( ...
     @time_cb, wrap_draw({}) ...
   , @() m1_centered_rect(fix_cross_size), @get_m1_position ...
   , @() m2_centered_rect(fix_cross_size), @get_m2_position ...
-  , @local_update, iti_duration, iti_duration );
+  , @local_update, timing.iti_duration, timing.iti_duration );
 end
 
 function error_timeout_state(duration)
@@ -378,34 +382,16 @@ end
   utilities
 %}
 
-function deliver_reward(chans, duration_s)
-  if ( ~bypass_reward )
-    reward_trigger( ni_interface, chans, duration_s );
-  end
-end
-
 function r = time_cb()
-  if ( use_clock_time )
-    r = seconds( datetime() - t0 );
-  else
-    r = toc( t0 );
-  end
+  r = elapsed_time( task_interface );
 end
 
 function m1_xy = get_m1_position()
-  if ( put_m1_in_center )
-    m1_xy = win_m1.Center;
-  else
-    m1_xy = get_m1( gaze_tracker );
-  end
+  m1_xy = task_interface.get_m1_position( win_m1 );
 end
 
 function m2_xy = get_m2_position()
-  if ( put_m2_in_center )
-    m2_xy = win_m2.Center;
-  else
-    m2_xy = get_m2( gaze_tracker );
-  end
+  m2_xy = task_interface.get_m2_position( win_m2 );
 end
 
 function r = m1_centered_rect(size)
@@ -421,32 +407,24 @@ function draw_texture(win, im, rect)
   Screen( 'DrawTexture', win.WindowHandle, im.TextureHandle, [], rect );
 end
 
-function fill_m1_rect(varargin)  
-  Screen( 'FillRect', win_m1.WindowHandle, varargin{:} );
+function fill_rect(win, varargin)
+  Screen( 'FillRect', win.WindowHandle, varargin{:} );
 end
 
-function fill_m1_oval(varargin)  
-  Screen( 'FillOval', win_m1.WindowHandle, varargin{:} );
+function fill_oval(win, varargin)
+  Screen( 'FillOval', win.WindowHandle, varargin{:} );
 end
 
-function fill_m2_oval(varargin)  
-  Screen( 'FillOval', win_m2.WindowHandle, varargin{:} );
-end
-
-function frame_m1_rect(varargin)  
-  Screen( 'FrameRect', win_m1.WindowHandle, varargin{:} );
-end
-
-function fill_m2_rect(varargin)
-  Screen( 'FillRect', win_m2.WindowHandle, varargin{:} );
+function frame_rect(win, varargin)  
+  Screen( 'FrameRect', win.WindowHandle, varargin{:} );
 end
 
 function maybe_draw_gaze_cursors()
   if ( draw_m1_gaze )
-    fill_m1_oval( [255, 0, 255], centered_rect(get_m1_position(), 100) );
+    fill_oval( win_m1, [255, 0, 255], centered_rect(get_m1_position(), 100) );
   end
   if ( draw_m2_gaze )
-    fill_m2_oval( [255, 0, 255], centered_rect(get_m2_position(), 100) );
+    fill_oval( win_m2, [255, 0, 255], centered_rect(get_m2_position(), 100) );
   end
 end
 
@@ -472,8 +450,8 @@ function r = wrap_draw(fs)
 end
 
 function draw_error()
-  fill_m1_rect( [255, 255, 0], m1_centered_rect(error_square_size) );
-  fill_m2_rect( [255, 255, 0], m2_centered_rect(error_square_size) );
+  fill_rect( win_m1, [255, 255, 0], m1_centered_rect(error_square_size) );
+  fill_rect( win_m2, [255, 255, 0], m2_centered_rect(error_square_size) );
 end
 
 function draw_fixation_crosses()
@@ -486,62 +464,18 @@ end
 %}
 
 function local_update()
-  res = tick( ni_interface );
-  update( gaze_tracker, res );
+  update( task_interface );
 end
 
 function local_shutdown()
   fprintf( '\n\n\n\n Shutting down ...' );
 
-  matlab_time.finish( datetime() );
-
-  delete( ni_interface );
-  delete( trial_data );
-  delete( vid_interface );
-  delete( laser_interface );
-  delete( npxi_events );
+  task_interface.finish();
+  delete( task_interface );
   close( win_m1 );
   close( win_m2 );
   
   fprintf( ' Done.' );
-end
-
-end
-
-function [chooser_choice, fixator_fixation] = state_choice(...
-    time_cb, loop_cb, draw_cb ...
-  , chooser_pos_cb, fixator_pos_cb ...
-  , chooser_rects_cb, fixator_rect_cb ...
-  , chooser_choice_time, fixator_fix_time, state_time ...
-)
-
-entry_t = time_cb();
-
-chooser_choice = ChoiceTracker( entry_t, 2 );
-fixator_fixation = FixationStateTracker( entry_t );
-
-while ( time_cb() - entry_t < state_time )
-  loop_cb();
-  
-  if ( ~isempty(draw_cb) )
-    draw_cb();
-  end
-  
-  chooser_xy = chooser_pos_cb();
-  fixator_xy = fixator_pos_cb();
-  
-  chooser_rects = chooser_rects_cb();
-  fixator_rect = fixator_rect_cb();
-  
-  t = time_cb();
-  
-  [chooser_chose, choice_index] = update( ...
-      chooser_choice, chooser_xy(1), chooser_xy(2), t ...
-    , chooser_choice_time, chooser_rects );
-  
-  fixator_broke = update( ...
-    fixator_fixation, fixator_xy(1), fixator_xy(2), t ...
-    , fixator_fix_time, fixator_rect );
 end
 
 end
