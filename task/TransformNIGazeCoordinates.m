@@ -1,23 +1,34 @@
-classdef TransformNIGazeCoordinates
-  properties (Constant = true)
+classdef TransformNIGazeCoordinates < handle
+  properties
     calibration_rect_m1 = [0, 0, 1280, 1024];
     calibration_rect_m2 = [0, 0, 1280, 1024];
+  end
+  
+  properties (Constant = true)
     vlims = [-5, 5];
     padding_frac = [0.2, 0.2];
   end
 
-  methods (Static = true)
-    function [x, y] = scale_coords_m1(x, y)
+  methods
+    function set_rect_m1(obj, r)
+      obj.calibration_rect_m1 = r;
+    end
+
+    function set_rect_m2(obj, r)
+      obj.calibration_rect_m2 = r;
+    end
+
+    function [x, y] = scale_coords_m1(obj, x, y)
       vlims = TransformNIGazeCoordinates.vlims;
       padding_frac = TransformNIGazeCoordinates.padding_frac;
-      calib_rect = TransformNIGazeCoordinates.calibration_rect_m1;
+      calib_rect = obj.calibration_rect_m1;
       [x, y] = transform_gaze_coords( x, y, vlims, calib_rect, padding_frac );
     end
 
-    function [x, y] = scale_coords_m2(x, y)
+    function [x, y] = scale_coords_m2(obj, x, y)
       vlims = TransformNIGazeCoordinates.vlims;
       padding_frac = TransformNIGazeCoordinates.padding_frac;
-      calib_rect = TransformNIGazeCoordinates.calibration_rect_m2;
+      calib_rect = obj.calibration_rect_m2;
       [x, y] = transform_gaze_coords( x, y, vlims, calib_rect, padding_frac );
     end
   end

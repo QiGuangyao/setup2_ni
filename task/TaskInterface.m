@@ -3,11 +3,13 @@ classdef TaskInterface < handle
     t0;
     data_p = '';
 
-    put_m1_gaze_in_center = true;
-    put_m2_gaze_in_center = true;
+    windows = {};
+
+    put_m1_gaze_in_center = false;
+    put_m2_gaze_in_center = false;
 
     bypass_video = true;
-    bypass_ni = true;
+    bypass_ni = false;
     bypass_npxi_events = false;
     bypass_laser = false;
     bypass_reward = false;
@@ -24,9 +26,10 @@ classdef TaskInterface < handle
   end
 
   methods
-    function obj = TaskInterface(t0, save_p)
+    function obj = TaskInterface(t0, save_p, windows)
       obj.t0 = t0;
       obj.data_p = save_p;
+      obj.windows = windows;
     end
 
     function m1_xy = get_m1_position(obj, win_m1)
@@ -69,12 +72,12 @@ classdef TaskInterface < handle
       %
       obj.ni_interface = NIInterface( obj.bypass_ni );
       initialize( obj.ni_interface, fullfile(obj.data_p, 'ni.bin') );
-      ni_meta_info = get_meta_info( obj.ni_interface );
 
       % gaze tracker
       %
       %
       obj.gaze_tracker = NIGazeTracker();
+      set_calibration_rects( obj.gaze_tracker, obj.windows );
 
       % neuro pixel events
       %
