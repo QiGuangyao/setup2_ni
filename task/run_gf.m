@@ -34,8 +34,10 @@ timing.initial_fixation_duration = 0.15;
 timing.initial_fixation_state_duration = 0.175;
 timing.spatial_rule_fixation_duration = 0.15;
 timing.spatial_rule_state_duration = 0.175;
-timing.spatial_cue_state_duration = 2;
-timing.actor_response_state_duration = 2;
+timing.spatial_cue_state_duration = 1;
+timing.spatial_cue_state_chooser_duration = 0.1;
+timing.actor_response_state_duration = 1;
+timing.actor_response_state_chooser_duration = 0.1;
 timing.fixation_delay_duration = 1;
 timing.iti_duration = 1;
 timing.error_duration = 1; % timeout in case of failure to fixate
@@ -294,7 +296,7 @@ end
   signaler_rects_cb = @() lr_rects(get(signaler_win.Rect), [100, 100]);
   actor_rects_cb = @() centered_rect(actor_win.Center, [100, 100]);
 
-  chooser_time = 0.1;
+  chooser_time = timing.spatial_cue_state_chooser_duration;
   state_time = timing.spatial_cue_state_duration;
   trigger( task_interface.laser_interface, laser_index );
 
@@ -351,7 +353,7 @@ function [res, actor_resp_choice] = state_actor_response()
   fixator_win = win_m2;
   fixator_pos = @get_m2_position;
 
-  chooser_choice_time = 0.1;
+  chooser_choice_time = timing.actor_response_state_chooser_duration;
   state_time = timing.actor_response_state_duration;
 
   loc_draw_cb = wrap_draw({@draw_response, @maybe_draw_gaze_cursors});  
