@@ -171,19 +171,32 @@ classdef NIInterface < handle
       %     reward_trigger( ni, chans, dur_s ); triggers pulses of `dur_s`
       %     duration on `chans` channels.
       %
+      %     reward_trigger( ni, chans, durs ); where `durs` is an array the
+      %     same size as `chans` triggers pulses of respective durations to
+      %     each channel.
+      %
       %     EX //
       %     reward_trigger( ni, 0, 50e-3 ); writes a 50ms pulse to channel
       %     0 (the first channel).
       %
       %     See also NIInterface/tick, NIInterface/initialize,
       %       NIInterface/pulse_trigger
+
+      if ( numel(dur_s) ~= 1 )
+        assert( numel(dur_s) == numel(chans) ...
+          , 'Expected either a scalar duration or one duration per channel.' );
+      end
       
       if ( ~obj.initialized )
         return
       end
 
       for i = 1:numel(chans)
-        NIInterface.trigger_reward( chans(i), dur_s );
+        if ( numel(dur_s) == 1 )
+          NIInterface.trigger_reward( chans(i), dur_s );
+        else
+          NIInterface.trigger_reward( chans(i), dur_s(i) );
+        end
       end
     end
 
