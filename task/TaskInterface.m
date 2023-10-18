@@ -11,7 +11,7 @@ classdef TaskInterface < handle
     bypass_video = false;
     bypass_ni = false;
     bypass_npxi_events = false;
-    bypass_laser = false;
+    bypass_laser = true;
     bypass_reward = false;
 
     laser_port = 'COM4';
@@ -32,19 +32,26 @@ classdef TaskInterface < handle
       obj.windows = windows;
     end
 
-    function m1_xy = get_m1_position(obj, win_m1)
+    function m1_xy = get_m1_position(obj, win_m1, enable_remap,center_remap_m1)
       if ( obj.put_m1_gaze_in_center )
         m1_xy = win_m1.Center;
+        if enable_remap
+          m1_xy = center_remap_m1;
+        end
+
       else
         m1_xy = get_m1( obj.gaze_tracker );
       end
     end
 
-    function m1_xy = get_m2_position(obj, win_m2)
+    function m2_xy = get_m2_position(obj, win_m2,enable_remap,center_remap_m2)
       if ( obj.put_m2_gaze_in_center )
-        m1_xy = win_m2.Center;
+        m2_xy = win_m2.Center;
+        if enable_remap
+          m2_xy = center_remap_m2;
+        end
       else
-        m1_xy = get_m2( obj.gaze_tracker );
+        m2_xy = get_m2( obj.gaze_tracker );
       end
     end
 

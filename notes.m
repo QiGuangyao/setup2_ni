@@ -2,6 +2,37 @@
 
 10/6/23
 
+
+Eye calibration and face calibration:
+-------------
+
+from: "C:\Users\setup2\source\fv\script"s
+
+general:
+  1. eye calibration
+    run fv_manual_eyelink_calibrate_m1.m
+    run fv_manual_eyelink_calibrate_m2.m
+  2. face calibration
+    mornitor go down
+    run fv_run_face_calibration_m1
+    run fv_run_face_calibration_m2
+
+in detail:
+  1. activate eyelink 1 connection
+  2. m1 eye calibration
+  3. activate eyelink 2 connection
+  4. m2 eye calibration
+  5. mornitor go down
+  6. activate eyelink 1 connection
+  7. m1 face calibration
+  8. activate eyelink 2 connection
+  9. m2 face calibration
+
+
+
+  
+
+
 Running the task:
 --------------
 
