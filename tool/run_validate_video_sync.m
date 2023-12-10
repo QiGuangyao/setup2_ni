@@ -1,5 +1,8 @@
 task_data_p = 'C:\Users\setup2\source\setup2_ni\task\data';
-npxi_data_p = 'C:\Users\setup2\Documents\Open Ephys\data\test';
+% npxi_data_p = 'C:\Users\setup2\Documents\Open Ephys\data\test';
+
+npxi_data_p = 'D:\ephys_data';
+
 
 npxi_sesh = 'latest';
 npxi_exper = '';

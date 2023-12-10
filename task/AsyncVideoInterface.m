@@ -1,6 +1,7 @@
 classdef AsyncVideoInterface < handle
   properties (Constant = true)
     INITIAL_TIMEOUT = 30;
+    VIDEO_ERROR_FILE_PREFIX = 'video_error';
   end
 
   properties (Access = private)
@@ -12,6 +13,7 @@ classdef AsyncVideoInterface < handle
     dummy = false;
     video_writer_output_p = '';
     serial = false;
+    max_duration = [];
   end
 
   properties (Access = private)
@@ -21,9 +23,12 @@ classdef AsyncVideoInterface < handle
   end
 
   methods
-    function obj = AsyncVideoInterface(dummy, dst_p, serial)
-      if ( nargin < 3 )
+    function obj = AsyncVideoInterface(dummy, dst_p, serial, max_duration)
+      if ( nargin < 3 || isempty(serial) )
         serial = false;
+      end
+      if ( nargin < 4 )
+        max_duration = [];
       end
 
       validateattributes( dummy, {'logical'}, {'scalar'}, mfilename, 'dummy' );
@@ -32,6 +37,7 @@ classdef AsyncVideoInterface < handle
       obj.dummy = dummy;
       obj.video_writer_output_p = dst_p;
       obj.serial = serial;
+      obj.max_duration = max_duration;
 
       % @NOTE: The video cameras trigger at half the rate of the counter
       % output pulse.
@@ -41,12 +47,14 @@ classdef AsyncVideoInterface < handle
     function initialize(obj)
       shutdown( obj );
 
+      ParallelErrorChecker.clear_error( AsyncVideoInterface.VIDEO_ERROR_FILE_PREFIX );
+
       if ( obj.dummy )
         return
       end
 
       cb = @() do_capture(...
-        obj.FRAME_RATE, obj.video_writer_output_p, obj.INITIAL_TIMEOUT);
+        obj.FRAME_RATE, obj.video_writer_output_p, obj.INITIAL_TIMEOUT, obj.max_duration);
 
       if ( obj.serial )
         obj.serial_result = cb();
@@ -113,10 +121,14 @@ classdef AsyncVideoInterface < handle
   end
 end
 
-function res = do_capture(frame_rate, dst_p, init_timeout)
+function res = do_capture(frame_rate, dst_p, init_timeout, max_duration)
 
 res = [];
 success = true;
+% for debugging parallel error signaler.
+debug_throw_err = false;
+
+try
 
 % When this amount of time has elapsed with no new frames available, 
 % capture will be stopped.
@@ -131,12 +143,15 @@ start( vi2 );
 t0 = tic();
 last_t = nan;
 while ( ~vi1.FramesAvailable || ~vi2.FramesAvailable )
+  if ( ParallelErrorChecker.has_error(TaskInterface.TASK_ABORTED_FILE_PREFIX) )
+    success = false;
+    break
+  end
   if ( isnan(last_t) || toc(t0) - last_t > 0.25 )
     fprintf( '\n Waiting for frames' );
     last_t = toc( t0 );
   end
   if ( toc(t0) > init_timeout )
-    fprintf( 'Failed to start capturing frames within %0.3f s\n', init_timeout );
     success = false;
     break
   end
@@ -146,17 +161,36 @@ if ( success )
   fprintf( '\n Began' );
   
   t = tic;
+  acq_t = tic;
+  start_t = tic;
   while ( true )
     drawnow;
+
+    if ( toc(acq_t) > 8 && debug_throw_err )
+      error( 'Example error in video acquisition' );
+    end
+
+    if ( ParallelErrorChecker.has_error(TaskInterface.TASK_ABORTED_FILE_PREFIX) )
+      break
+    end
   
-    if ( vi1.FramesAvailable || vi2.FramesAvailable )
+    if ( ~isempty(max_duration) && toc(start_t) >= max_duration )
+      fprintf( '\n Max duration of recording reached.' );
+      break
+
+    elseif ( vi1.FramesAvailable || vi2.FramesAvailable )
       t = tic;
+
     elseif ( toc(t) > ACQ_TIMEOUT )
       fprintf( '\n No frames received within %0.3f s; stopping acquisition.' ...
         , ACQ_TIMEOUT );
       break
     end
   end
+else
+  ParallelErrorChecker.set_error( ...
+    AsyncVideoInterface.VIDEO_ERROR_FILE_PREFIX ...
+    , sprintf('Failed to start capturing frames within %0.3f s\n', init_timeout) );
 end
   
 stop( vi1 );
@@ -178,6 +212,11 @@ if ( success )
   res.vs2 = vs2;
 end
 
+catch err
+  ParallelErrorChecker.set_error( ...
+    AsyncVideoInterface.VIDEO_ERROR_FILE_PREFIX, err.message );
+end
+
 imaqreset;
 
 end
@@ -185,7 +224,14 @@ end
 function [vi1, vid_writer1, vid_sync1] = make_components(index, frame_rate, vid_p)
 
 vi1 = videoinput( 'gentl', index );
+
+vi_src = getselectedsource( vi1 );
+
+set( vi_src, 'TriggerMode', 'On' );
+set( vi_src, 'TriggerSource', 'Line3' );
+
 triggerconfig( vi1, 'hardware', 'DeviceSpecific' );
+
 % set_exposure_time_from_fps( vi1, frame_rate, 1e3 );
 
 % video writer

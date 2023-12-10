@@ -1,4 +1,12 @@
-function run_gf_pair_train_step0()
+function run_gf_pair_train_L_H_1( reward_duration_s,...
+  dur_m1,...
+  dur_m2,...
+  initial_fixation_duration_m1,...
+  initial_fixation_duration_m2,...
+  initial_fixation_state_duration,...
+  overlap_duration_to_exit,...
+  max_num_trials...
+  )
 
 cd 'C:\Users\setup2\source\setup2_ni\deps\network-events\Resources\Matlab';
 
@@ -32,7 +40,7 @@ proj_p = fileparts( which(mfilename) );
 bypass_trial_data = false ;    
 save_data = true;
 full_screens = true;
-max_num_trials = 100;
+max_num_trials = max_num_trials;
 
 draw_m2_eye_roi = false;
 draw_m1_gaze = false;
@@ -54,8 +62,9 @@ verbose = false;
 %}
 
 timing = struct();
-timing.initial_fixation_duration = 0.1;
-timing.initial_fixation_state_duration = 4;
+timing.initial_fixation_duration_m1 = initial_fixation_duration_m1;
+timing.initial_fixation_duration_m2 = initial_fixation_duration_m2;
+timing.initial_fixation_state_duration = initial_fixation_state_duration;
 timing.spatial_rule_fixation_duration = 0.15;
 timing.spatial_rule_state_duration = 0.5;
 timing.spatial_cue_state_duration = 1;
@@ -65,14 +74,21 @@ timing.actor_response_state_duration = 1;
 timing.actor_response_state_chooser_duration = 0.1;
 timing.fixation_delay_duration = 1;
 timing.iti_duration = 1;
+% timing.iti_duration = 4;
 timing.error_duration = 1.2; % timeout in case of failure to fixate
 timing.feedback_duration = 1;
+timing.waitSecs = 0.05;
+
+
+% how long m1 and m2 can be overlapping in their target bounds before state
+% exits
+timing.overlap_duration_to_exit = overlap_duration_to_exit;
 
 %{
 name of monkeys
 %}
-name_of_m1 = 'L';
-name_of_m2 = 'H';
+name_of_m1 ='M1_lynch';% 'lynch';%'M1_simu';
+name_of_m2 ='M2_hitch';% 'Hitch';
 
 
 
@@ -97,10 +113,11 @@ spatial_rule_width = 8;
   reward parameters
 %}
 
-reward_duration_s = 0.6;
-dur_m1 = 0.25;
-dur_m2 = 0.25;
-
+reward_duration_s = reward_duration_s;
+% reward_duration_s = 1;
+dur_m1 = dur_m1;% less than 0.25
+dur_m2 = dur_m1;% less than 0.25
+dur_key = 0.25; % reward of key press
 
 %{
   init
@@ -127,7 +144,7 @@ end
 %{
   remap target and stimuli
 %}
-screen_height = 8.5;% cm
+screen_height = 10.5;% cm
 
 monitor_height = 27.3;
 if enable_remap
@@ -216,10 +233,6 @@ task_params.verbose = verbose;
 task_params.m1 = name_of_m1;
 task_params.m2 = name_of_m2;
 
-
-
-
-
 if ( bypass_trial_data )
   trial_data = [];
 else
@@ -246,6 +259,13 @@ targ1_im_m2 = ptb.Image( win_m2, imread(fullfile(proj_p, 'images/rect.jpg')));
 targ2_im_m2 = ptb.Image( win_m2, imread(fullfile(proj_p, 'images/rotated_rect.jpg')));
 % m1 targets
 % targ_im_m1 = ptb.Image( win_m1, imread(fullfile(proj_p, 'images/circle.jpg')));
+
+reward_key_timers = ptb.Reference();
+reward_key_timers.Value = struct( ...
+    'timer', {nan, nan} ...
+  , 'key', {ptb.keys.r, ptb.keys.t} ...
+  , 'channel', {0, 1} ...
+);
 
 %{
   main trial sequence
@@ -322,15 +342,42 @@ while ( ~ptb.util.is_esc_down() && ...
   m2_correct = m2_correct+acquired_m2;
   m1_correct/trial_inde,m2_correct/trial_inde
 
-  deliver_reward( task_interface, 0, dur_m1*acquired_m1);
-  deliver_reward( task_interface, 0, dur_m2*acquired_m2);
+  if acquired_m1
+    [dur_m1,'m1 success']
+%     deliver_reward( task_interface, 0, dur_m1*acquired_m1);
+  end
+  
+  if acquired_m2
+    [dur_m2,'m2 success']
+%     deliver_reward( task_interface, 1, dur_m2*acquired_m2);
+  end
+
+
+%   if ( ~acquired )
+%     % error
+%     error_timeout_state( timing.error_duration,1,1);
+%     continue
+%   end
+% 
+  % deliver_reward( task_interface, 0, dur_m1*acquired_m1 );
+  % deliver_reward( task_interface, 1, dur_m2*acquired_m2 );
+
+%   if ( (~acquired_m1) | (~acquired_m2))
+%     % error
+%     error_timeout_state( timing.error_duration,1,1);
+%     continue
+%   end
   if ( (~acquired_m1) || (~acquired_m2))
     % error
-    error_timeout_state( timing.error_duration,1,1);
+    error_timeout_state( timing.error_duration,1,1, ~acquired_m1, ~acquired_m2);
     continue
   end
-  'success'
-  deliver_reward( task_interface, 0:1, reward_duration_s*acquired_m1*acquired_m2);
+
+  if acquired_m1 & acquired_m2
+    'both success'
+    WaitSecs( max(dur_m1, dur_m2) + timing.waitSecs);
+    deliver_reward( task_interface, 0:1, reward_duration_s*acquired_m1*acquired_m2);
+  end
 
 
 % 
@@ -483,17 +530,27 @@ function [res, acquired_m1,acquired_m2] = state_fixation_with_block_rule()
   loc_draw_cb = wrap_draw(...
     {@draw_fixation_crosses, @maybe_draw_gaze_cursors},1,1);
 
-  [fs_m1, fs_m2] = static_fixation2( ...
+  deliver_reward_m1_cb = @() deliver_reward(task_interface, 0, dur_m1);
+  deliver_reward_m2_cb = @() deliver_reward(task_interface, 1, dur_m2);
+
+  [fs_m1, fs_m2] = joint_fixation2( ...
     @time_cb, loc_draw_cb ...
     , @() rect_pad(m1_centered_rect_remap(fix_cross_size), cross_padding), @get_m1_position ...
     , @() rect_pad(m2_centered_rect_remap(fix_cross_size), cross_padding), @get_m2_position ...
     , @local_update ...
-    , timing.initial_fixation_duration, timing.initial_fixation_state_duration );
+    , timing.initial_fixation_duration_m1...
+    , timing.initial_fixation_duration_m2...
+    , timing.initial_fixation_state_duration ...
+    , [] ...
+    , 'm1_every_acq_callback', deliver_reward_m1_cb ...
+    , 'm2_every_acq_callback', deliver_reward_m2_cb ...
+    , 'overlap_duration_to_exit', timing.overlap_duration_to_exit ...
+  );
 
   res.fixation_state_m1 = fs_m1;
   res.fixation_state_m2 = fs_m2;
-  acquired_m1 = fs_m1.acquired;
-  acquired_m2 = fs_m2.acquired;
+  acquired_m1 = fs_m1.ever_acquired;
+  acquired_m2 = fs_m2.ever_acquired;
   acquired = fs_m1.acquired && fs_m2.acquired;
 end
 
@@ -713,10 +770,18 @@ function state_iti()
   , @local_update, timing.iti_duration, timing.iti_duration );
 end
 
-function error_timeout_state(duration,errorDrawWin1, errorDrawWin2)
+function error_timeout_state(duration,errorDrawWin1, errorDrawWin2, show_m1_error, show_m2_error)
+  if ( nargin < 5 )
+    show_m2_error = true;
+  end
+  if ( nargin < 4 )
+    show_m1_error = true;
+  end
+
   % error
+  draw_err = @() draw_error(show_m1_error, show_m2_error);
   static_fixation2( ...
-    @time_cb, wrap_draw({@draw_error, @maybe_draw_gaze_cursors},errorDrawWin1,errorDrawWin2) ...
+    @time_cb, wrap_draw({draw_err, @maybe_draw_gaze_cursors},errorDrawWin1,errorDrawWin2) ...
   , @invalid_rect, @get_m1_position ...
   , @invalid_rect, @get_m2_position ...
   , @local_update, duration, duration );
@@ -825,11 +890,21 @@ function r = wrap_draw(fs,maybeDrawWin1,maybeDrawWin2)
   r = @do_draw;
 end
 
-function draw_error()
+function draw_error(show_m1, show_m2)
+  if ( nargin < 2 )
+    show_m2 = true;
+  end
+  if ( nargin < 1 )
+    show_m1 = true;
+  end
 %   fill_rect( win_m1, [255, 255, 0], m1_centered_rect_screen(error_square_size) );
 %   fill_rect( win_m2, [255, 255, 0], m2_centered_rect_screen(error_square_size) );
-  fill_rect( win_m1, [0, 255, 0], m1_centered_rect_screen(error_square_size) );
-  fill_rect( win_m2, [0, 255, 0], m2_centered_rect_screen(error_square_size) );
+  if ( show_m1 )
+    fill_rect( win_m1, [0, 255, 0], m1_centered_rect_screen(error_square_size) );
+  end
+  if ( show_m2 )
+    fill_rect( win_m2, [0, 255, 0], m2_centered_rect_screen(error_square_size) );
+  end
 end
 
 function draw_fixation_crosses()
@@ -845,6 +920,19 @@ end
 
 function local_update()
   update( task_interface );
+
+  % -----------------------------------------------------------------------
+  % reward keys
+  timers = reward_key_timers.Value;
+  for i = 1:numel(timers)
+    if ( ptb.util.is_key_down(timers(i).key) && ...
+        (isnan(timers(i).timer) || toc(timers(i).timer) > 0.5) )
+      deliver_reward( task_interface, timers(i).channel, dur_key );
+      timers(i).timer = tic;
+    end
+  end
+  reward_key_timers.Value = timers;
+  % -----------------------------------------------------------------------
 end
 
 function local_shutdown()

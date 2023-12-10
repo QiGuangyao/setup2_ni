@@ -54,7 +54,7 @@ struct OutputPulseQueue {
   void push(int channel, float time_left) {
     for (auto& pulse : pulses) {
       if (pulse.channel == channel) {
-        pulse.time_remaining = time_left;
+        pulse.time_remaining += time_left;
         return;
       }
     }

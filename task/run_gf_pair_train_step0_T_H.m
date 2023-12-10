@@ -4,21 +4,25 @@ cd 'C:\Users\setup2\source\setup2_ni\deps\network-events\Resources\Matlab';
 
 m2_eye_roi = [];
 
-try
-% load the latest far plane calibrations
-[m1_calib, m2_calib] = get_latest_far_plane_calibrations( dsp3.datedir );
+face_cal = false;
 
-% eye roi target width and height padding
-m2_eye_roi_padding_x = 0;
-m2_eye_roi_padding_y = 100;
-m2_eye_roi = get_eye_roi_from_calibration_file( ...
-  m1_calib, m2_eye_roi_padding_x, m2_eye_roi_padding_y );
-% m2_face_roi = get_face_roi_from_calibration_file( m1_calib, 0, 0 );
+if face_cal
+  try
+  % load the latest far plane calibrations
+  [m1_calib, m2_calib] = get_latest_far_plane_calibrations( dsp3.datedir );
+  
+  % eye roi target width and height padding
+  m2_eye_roi_padding_x = 0;
+  m2_eye_roi_padding_y = 100;
+  m2_eye_roi = get_eye_roi_from_calibration_file( ...
+    m1_calib, m2_eye_roi_padding_x, m2_eye_roi_padding_y );
+  % m2_face_roi = get_face_roi_from_calibration_file( m1_calib, 0, 0 );
+  
+  catch roi_err
+    warning( roi_err.message );
+  end
 
-catch roi_err
-  warning( roi_err.message );
 end
-
 % need parpool for async video interface. the pool should be
 % initialized before the call to parfeval(), since it usually takes a 
 % while to start.
@@ -32,7 +36,7 @@ proj_p = fileparts( which(mfilename) );
 bypass_trial_data = false ;    
 save_data = true;
 full_screens = true;
-max_num_trials = 100;
+max_num_trials = 200;
 
 draw_m2_eye_roi = false;
 draw_m1_gaze = false;
@@ -54,7 +58,7 @@ verbose = false;
 %}
 
 timing = struct();
-timing.initial_fixation_duration = 0.1;
+timing.initial_fixation_duration = 0.4;
 timing.initial_fixation_state_duration = 4;
 timing.spatial_rule_fixation_duration = 0.15;
 timing.spatial_rule_state_duration = 0.5;
@@ -64,14 +68,15 @@ timing.gaze_triggered_delay = 4;
 timing.actor_response_state_duration = 1;
 timing.actor_response_state_chooser_duration = 0.1;
 timing.fixation_delay_duration = 1;
-timing.iti_duration = 1;
-timing.error_duration = 1.2; % timeout in case of failure to fixate
+timing.iti_duration = 0.8;
+timing.error_duration = 1; % timeout in case of failure to fixate
 timing.feedback_duration = 1;
-
+antiSecs = 0.1;
+timing.antiSecs = antiSecs;
 %{
 name of monkeys
 %}
-name_of_m1 = 'L';
+name_of_m1 = 'T';
 name_of_m2 = 'H';
 
 
@@ -80,14 +85,14 @@ name_of_m2 = 'H';
   stimuli parameters
 %}
 
-fix_cross_size = 200; % px
+fix_cross_size = 150; % px
 fix_target_size = 100; % px
 fix_circular_size = 100;
 error_square_size = 100;
 
 % add +/- target_padding
 target_padding = 50;
-cross_padding = 200;
+cross_padding = 150;
 circular_padding = 50;
 
 % sptial rule width
@@ -97,9 +102,9 @@ spatial_rule_width = 8;
   reward parameters
 %}
 
-reward_duration_s = 0.6;
-dur_m1 = 0.25;
-dur_m2 = 0.25;
+reward_duration_s = 1.2;
+dur_m1 =0;
+dur_m2 = 0;
 
 
 %{
@@ -127,7 +132,7 @@ end
 %{
   remap target and stimuli
 %}
-screen_height = 8.5;% cm
+screen_height = 0;% cm
 
 monitor_height = 27.3;
 if enable_remap
@@ -140,8 +145,8 @@ if enable_remap
   y_axis_remap = (27.3-(screen_height/2-2.2))/27.3;%x/(2*27.3);%0.25;%
   
   if screen_height == 0
-    y_axis_screen = 0.75;
-    y_axis_remap = 0.75;
+    y_axis_screen = 0.5;
+    y_axis_remap = 0.5;
   end
     
   center_screen_m1 = [0.5*win_m1.Width,y_axis_screen*win_m1.Height];
@@ -322,15 +327,21 @@ while ( ~ptb.util.is_esc_down() && ...
   m2_correct = m2_correct+acquired_m2;
   m1_correct/trial_inde,m2_correct/trial_inde
 
-  deliver_reward( task_interface, 0, dur_m1*acquired_m1);
-  deliver_reward( task_interface, 0, dur_m2*acquired_m2);
+%   deliver_reward( task_interface, 0, dur_m1*acquired_m1);
+%   deliver_reward( task_interface, 1, dur_m2*acquired_m2);
+  WaitSecs(antiSecs);
+
   if ( (~acquired_m1) || (~acquired_m2))
     % error
     error_timeout_state( timing.error_duration,1,1);
     continue
   end
+
   'success'
-  deliver_reward( task_interface, 0:1, reward_duration_s*acquired_m1*acquired_m2);
+
+  
+
+  deliver_reward( task_interface, 0, reward_duration_s*acquired_m1*acquired_m2);
 
 
 % 
@@ -488,7 +499,7 @@ function [res, acquired_m1,acquired_m2] = state_fixation_with_block_rule()
     , @() rect_pad(m1_centered_rect_remap(fix_cross_size), cross_padding), @get_m1_position ...
     , @() rect_pad(m2_centered_rect_remap(fix_cross_size), cross_padding), @get_m2_position ...
     , @local_update ...
-    , timing.initial_fixation_duration, timing.initial_fixation_state_duration );
+    , timing.initial_fixation_duration, timing.initial_fixation_state_duration);
 
   res.fixation_state_m1 = fs_m1;
   res.fixation_state_m2 = fs_m2;
@@ -570,8 +581,7 @@ function success = state_gaze_triggered_delay(trigger_roi, timeout)
     end
   end
 
-  %%
-
+  %
   function draw()
     draw_texture( signaler_win, cross_im, signaler_rect );
     if ( draw_m2_eye_roi )

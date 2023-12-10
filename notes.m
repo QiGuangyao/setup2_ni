@@ -30,7 +30,11 @@ in detail:
 
 
 
-  
+C:\Users\setup2\source\calibration\script
+  run_calibration.m
+
+after face calibration files
+'C:\Users\setup2\source\gaze_following\data\face_calibration'
 
 
 Running the task:

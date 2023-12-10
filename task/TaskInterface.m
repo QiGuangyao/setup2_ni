@@ -1,7 +1,12 @@
 classdef TaskInterface < handle
+  properties (Constant = true)
+    TASK_ABORTED_FILE_PREFIX = 'task_aborted';
+  end
+
   properties
     t0;
     data_p = '';
+    logged_video_error = false;
 
     windows = {};
 
@@ -30,6 +35,12 @@ classdef TaskInterface < handle
       obj.t0 = t0;
       obj.data_p = save_p;
       obj.windows = windows;
+    end
+
+    function tf = proceed(obj)
+      % keep running while there was no error with video acquisition.
+      tf = ~ParallelErrorChecker.has_error( ...
+        AsyncVideoInterface.VIDEO_ERROR_FILE_PREFIX );
     end
 
     function m1_xy = get_m1_position(obj, win_m1, enable_remap,center_remap_m1)
@@ -66,6 +77,8 @@ classdef TaskInterface < handle
     end
 
     function initialize(obj)
+      ParallelErrorChecker.clear_error( TaskInterface.TASK_ABORTED_FILE_PREFIX );
+
       obj.matlab_time = MatlabTimeSync( obj.t0 );
 
       % video
@@ -105,6 +118,15 @@ classdef TaskInterface < handle
     function update(obj)
       res = tick( obj.ni_interface );
       update( obj.gaze_tracker, res );
+      
+      if ( ~obj.logged_video_error )
+        % check whether an error has occurred in video acquisition
+        had_err = ParallelErrorChecker.check_log_error( ...
+          AsyncVideoInterface.VIDEO_ERROR_FILE_PREFIX );
+        if ( had_err )
+          obj.logged_video_error = true;
+        end
+      end
     end
 
     function finish(obj)
@@ -112,6 +134,8 @@ classdef TaskInterface < handle
     end
 
     function shutdown(obj)
+      ParallelErrorChecker.set_error( TaskInterface.TASK_ABORTED_FILE_PREFIX, 'aborted' );
+
       delete( obj.ni_interface );
       % @NOTE: Task data should be deleted after NI shuts down, but before
       % video interface is deleted (bc the video data may be needed

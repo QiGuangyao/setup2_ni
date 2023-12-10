@@ -1,4 +1,4 @@
-function run_gf_pair_train_step0()
+function run_gf_pair_train_step_simu()
 
 cd 'C:\Users\setup2\source\setup2_ni\deps\network-events\Resources\Matlab';
 
@@ -35,8 +35,8 @@ full_screens = true;
 max_num_trials = 100;
 
 draw_m2_eye_roi = false;
-draw_m1_gaze = false;
-draw_m2_gaze = false;
+draw_m1_gaze = true;
+draw_m2_gaze = true;
 
 enable_spatial_rule = false; 
 enable_spatial_cue = false;
@@ -56,6 +56,13 @@ verbose = false;
 timing = struct();
 timing.initial_fixation_duration = 0.1;
 timing.initial_fixation_state_duration = 4;
+
+timing.initial_fixation_duration_m1_solo = 0.1;
+timing.initial_fixation_state_duration_m1_solo = 4;
+
+timing.initial_fixation_duration_m2_solo = 0.1;
+timing.initial_fixation_state_duration_m2_solo = 4;
+
 timing.spatial_rule_fixation_duration = 0.15;
 timing.spatial_rule_state_duration = 0.5;
 timing.spatial_cue_state_duration = 1;
@@ -64,15 +71,15 @@ timing.gaze_triggered_delay = 4;
 timing.actor_response_state_duration = 1;
 timing.actor_response_state_chooser_duration = 0.1;
 timing.fixation_delay_duration = 1;
-timing.iti_duration = 1;
+timing.iti_duration = 0.5;
 timing.error_duration = 1.2; % timeout in case of failure to fixate
 timing.feedback_duration = 1;
 
 %{
 name of monkeys
 %}
-name_of_m1 = 'L';
-name_of_m2 = 'H';
+name_of_m1 = 'M1_simu';
+name_of_m2 = 'M2_simu';
 
 
 
@@ -97,9 +104,9 @@ spatial_rule_width = 8;
   reward parameters
 %}
 
-reward_duration_s = 0.6;
-dur_m1 = 0.25;
-dur_m2 = 0.25;
+reward_duration_s = 1;
+dur_m1 = 0.25;% less than 0.25
+dur_m2 = 0.25;% less than 0.25
 
 
 %{
@@ -216,10 +223,6 @@ task_params.verbose = verbose;
 task_params.m1 = name_of_m1;
 task_params.m2 = name_of_m2;
 
-
-
-
-
 if ( bypass_trial_data )
   trial_data = [];
 else
@@ -298,6 +301,13 @@ while ( ~ptb.util.is_esc_down() && ...
     fixation with block rule
   %}
 %   [res, acquired_m1,acquired_m2]
+
+
+%   [trial_rec.fixation_with_block_rule_m1_solo, acquired_m1_solo] = state_fixation_with_block_rule_m1_solo();
+
+%   [trial_rec.fixation_with_block_rule_m2_solo, acquired_m2_solo] = state_fixation_with_block_rule_m2_solo();
+
+
   [trial_rec.fixation_with_block_rule, acquired_m1,acquired_m2] = state_fixation_with_block_rule();
 %   [trial_rec.fixation_with_block_rule, acquired] = state_fixation_with_block_rule();
   
@@ -322,15 +332,28 @@ while ( ~ptb.util.is_esc_down() && ...
   m2_correct = m2_correct+acquired_m2;
   m1_correct/trial_inde,m2_correct/trial_inde
 
-  deliver_reward( task_interface, 0, dur_m1*acquired_m1);
-  deliver_reward( task_interface, 0, dur_m2*acquired_m2);
+  
+%   if acquired_m1
+%     [dur_m1,'m1 success']
+%     deliver_reward( task_interface, 0, dur_m1*acquired_m1);
+%   end
+%   
+%   if acquired_m2
+%     [dur_m2,'m2 success']
+%     deliver_reward( task_interface, 1, dur_m2*acquired_m2);
+%   end
+  
   if ( (~acquired_m1) || (~acquired_m2))
     % error
     error_timeout_state( timing.error_duration,1,1);
     continue
   end
-  'success'
-  deliver_reward( task_interface, 0:1, reward_duration_s*acquired_m1*acquired_m2);
+
+  if acquired_m1 & acquired_m2
+    'both success'
+    WaitSecs(0.3) % large than 0.3
+    deliver_reward( task_interface, 0:1, reward_duration_s*acquired_m1*acquired_m2);
+  end
 
 
 % 
@@ -477,7 +500,7 @@ end
   states
 %}
 
-function [res, acquired_m1,acquired_m2] = state_fixation_with_block_rule()
+function [res, acquired_m1,acquired_m2,overlap_dura] = state_fixation_with_block_rule()
   send_message( task_interface.npxi_events, 'fixation_with_block_rule/enter' );
 
   loc_draw_cb = wrap_draw(...
@@ -495,7 +518,86 @@ function [res, acquired_m1,acquired_m2] = state_fixation_with_block_rule()
   acquired_m1 = fs_m1.acquired;
   acquired_m2 = fs_m2.acquired;
   acquired = fs_m1.acquired && fs_m2.acquired;
+  
+  if acquired_m1
+    [dur_m1,'m1 success']
+    deliver_reward( task_interface, 0, dur_m1*acquired_m1);
+  end
+  
+  if acquired_m2
+    [dur_m2,'m2 success']
+    deliver_reward( task_interface, 1, dur_m2*acquired_m2);
+  end
+
+  if acquired_m1 & acquired_m2
+    if abs(fs_m1.acquired_ts(end) - fs_m2.acquired_ts(end))>=timing.initial_fixation_duration
+      deliver_reward( task_interface, 0:1, reward_duration_s);
+    end
+  end
+  
 end
+
+
+%{
+for single monkey state_fixation_with_block_rule
+%}
+% function [res, acquired_m1] = state_fixation_with_block_rule_m1_solo()
+%   send_message( task_interface.npxi_events, 'fixation_with_block_rule/enter' );
+% 
+%   loc_draw_cb = wrap_draw(...
+%     {@draw_fixation_crosses, @maybe_draw_gaze_cursors},1,1);
+% 
+%   [fs_m1] = static_fixation_m1_solo( ...
+%     @time_cb, loc_draw_cb ...
+%     , @() rect_pad(m1_centered_rect_remap(fix_cross_size), cross_padding), @get_m1_position ...
+%     , @local_update ...
+%     , timing.initial_fixation_duration_m1_solo, timing.initial_fixation_state_duration_m1_solo );
+% 
+%   res.fixation_state_m1 = fs_m1;
+%   acquired_m1 = fs_m1.acquired;
+% %   acquired = fs_m1.acquired;
+% end
+% 
+% function [res, acquired_m2] = state_fixation_with_block_rule_m2_solo()
+%   send_message( task_interface.npxi_events, 'fixation_with_block_rule/enter' );
+% 
+%   loc_draw_cb = wrap_draw(...
+%     {@draw_fixation_crosses, @maybe_draw_gaze_cursors},1,1);
+% 
+%   [fs_m2] = static_fixation_m2_solo( ...
+%     @time_cb, loc_draw_cb ...
+%     , @() rect_pad(m1_centered_rect_remap(fix_cross_size), cross_padding), @get_m2_position ...
+%     , @local_update ...
+%     , timing.initial_fixation_duration_m2_solo, timing.initial_fixation_state_duration_m2_solo );
+% 
+%   res.fixation_state_m12 = fs_m2;
+%   acquired_m2 = fs_m2.acquired;
+% %   acquired = fs_m1.acquired;
+end
+
+
+% function [res, acquired_m1] = state_fixation_with_block_rule_m1()
+%   send_message( task_interface.npxi_events, 'fixation_with_block_rule/enter' );
+% 
+%   loc_draw_cb = wrap_draw(...
+%     {@draw_fixation_crosses, @maybe_draw_gaze_cursors},1,1);
+% 
+%   [fs_m1, fs_m2] = static_fixation2( ...
+%     @time_cb, loc_draw_cb ...
+%     , @() rect_pad(m1_centered_rect_remap(fix_cross_size), cross_padding), @get_m1_position ...
+%     , @() rect_pad(m2_centered_rect_remap(fix_cross_size), cross_padding), @get_m2_position ...
+%     , @local_update ...
+%     , timing.initial_fixation_duration, timing.initial_fixation_state_duration );
+% 
+%   res.fixation_state_m1 = fs_m1;
+%   acquired_m1 = fs_m1.acquired;
+% end
+
+
+
+
+
+
 
 function [res, acquired] = state_spatial_rule(is_gaze_trial)
   send_message( task_interface.npxi_events, 'spatial_rule/enter' );
@@ -570,7 +672,7 @@ function success = state_gaze_triggered_delay(trigger_roi, timeout)
     end
   end
 
-  %%
+  %
 
   function draw()
     draw_texture( signaler_win, cross_im, signaler_rect );
@@ -895,7 +997,7 @@ function rs = lr_rects(win_rect, size)
 
 end
 
-end
+% end
 
 function r = centered_rect(xy, size)
   if ( numel(size) == 2 )

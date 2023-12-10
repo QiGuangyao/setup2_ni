@@ -1,4 +1,11 @@
-function run_gf_pair_train_step0()
+function run_gf_pair_train_simu_2( reward_duration_s,...
+  dur_m1,...
+  dur_m2,...
+  initial_fixation_duration,...
+  initial_fixation_state_duration,...
+  overlap_duration_to_exit,...
+  max_num_trials...
+  )
 
 cd 'C:\Users\setup2\source\setup2_ni\deps\network-events\Resources\Matlab';
 
@@ -32,11 +39,11 @@ proj_p = fileparts( which(mfilename) );
 bypass_trial_data = false ;    
 save_data = true;
 full_screens = true;
-max_num_trials = 100;
+max_num_trials = max_num_trials;
 
 draw_m2_eye_roi = false;
-draw_m1_gaze = false;
-draw_m2_gaze = false;
+draw_m1_gaze = true;
+draw_m2_gaze = true;
 
 enable_spatial_rule = false; 
 enable_spatial_cue = false;
@@ -54,8 +61,8 @@ verbose = false;
 %}
 
 timing = struct();
-timing.initial_fixation_duration = 0.1;
-timing.initial_fixation_state_duration = 4;
+timing.initial_fixation_duration = initial_fixation_duration;
+timing.initial_fixation_state_duration = initial_fixation_state_duration;
 timing.spatial_rule_fixation_duration = 0.15;
 timing.spatial_rule_state_duration = 0.5;
 timing.spatial_cue_state_duration = 1;
@@ -65,14 +72,19 @@ timing.actor_response_state_duration = 1;
 timing.actor_response_state_chooser_duration = 0.1;
 timing.fixation_delay_duration = 1;
 timing.iti_duration = 1;
+% timing.iti_duration = 4;
 timing.error_duration = 1.2; % timeout in case of failure to fixate
 timing.feedback_duration = 1;
+
+% how long m1 and m2 can be overlapping in their target bounds before state
+% exits
+timing.overlap_duration_to_exit = overlap_duration_to_exit;
 
 %{
 name of monkeys
 %}
-name_of_m1 = 'L';
-name_of_m2 = 'H';
+name_of_m1 ='M1_simu';% 'lynch';%'M1_simu';
+name_of_m2 ='M2_simu';% 'Hitch';
 
 
 
@@ -97,10 +109,10 @@ spatial_rule_width = 8;
   reward parameters
 %}
 
-reward_duration_s = 0.6;
-dur_m1 = 0.25;
-dur_m2 = 0.25;
-
+reward_duration_s = reward_duration_s;
+% reward_duration_s = 1;
+dur_m1 = dur_m1;% less than 0.25
+dur_m2 = dur_m1;% less than 0.25
 
 %{
   init
@@ -322,15 +334,42 @@ while ( ~ptb.util.is_esc_down() && ...
   m2_correct = m2_correct+acquired_m2;
   m1_correct/trial_inde,m2_correct/trial_inde
 
-  deliver_reward( task_interface, 0, dur_m1*acquired_m1);
-  deliver_reward( task_interface, 0, dur_m2*acquired_m2);
+  if acquired_m1
+    [dur_m1,'m1 success']
+%     deliver_reward( task_interface, 0, dur_m1*acquired_m1);
+  end
+  
+  if acquired_m2
+    [dur_m2,'m2 success']
+%     deliver_reward( task_interface, 1, dur_m2*acquired_m2);
+  end
+
+
+%   if ( ~acquired )
+%     % error
+%     error_timeout_state( timing.error_duration,1,1);
+%     continue
+%   end
+% 
+  % deliver_reward( task_interface, 0, dur_m1*acquired_m1 );
+  % deliver_reward( task_interface, 1, dur_m2*acquired_m2 );
+
+%   if ( (~acquired_m1) | (~acquired_m2))
+%     % error
+%     error_timeout_state( timing.error_duration,1,1);
+%     continue
+%   end
   if ( (~acquired_m1) || (~acquired_m2))
     % error
     error_timeout_state( timing.error_duration,1,1);
     continue
   end
-  'success'
-  deliver_reward( task_interface, 0:1, reward_duration_s*acquired_m1*acquired_m2);
+
+  if acquired_m1 & acquired_m2
+    'both success'
+    WaitSecs( max(dur_m1, dur_m2) + 0.05 );
+    deliver_reward( task_interface, 0:1, reward_duration_s*acquired_m1*acquired_m2);
+  end
 
 
 % 
@@ -483,17 +522,25 @@ function [res, acquired_m1,acquired_m2] = state_fixation_with_block_rule()
   loc_draw_cb = wrap_draw(...
     {@draw_fixation_crosses, @maybe_draw_gaze_cursors},1,1);
 
-  [fs_m1, fs_m2] = static_fixation2( ...
+  deliver_reward_m1_cb = @() deliver_reward(task_interface, 0, dur_m1);
+  deliver_reward_m2_cb = @() deliver_reward(task_interface, 1, dur_m2);
+
+  [fs_m1, fs_m2] = joint_fixation2( ...
     @time_cb, loc_draw_cb ...
     , @() rect_pad(m1_centered_rect_remap(fix_cross_size), cross_padding), @get_m1_position ...
     , @() rect_pad(m2_centered_rect_remap(fix_cross_size), cross_padding), @get_m2_position ...
     , @local_update ...
-    , timing.initial_fixation_duration, timing.initial_fixation_state_duration );
+    , timing.initial_fixation_duration, timing.initial_fixation_state_duration ...
+    , [] ...
+    , 'm1_every_acq_callback', deliver_reward_m1_cb ...
+    , 'm2_every_acq_callback', deliver_reward_m2_cb ...
+    , 'overlap_duration_to_exit', timing.overlap_duration_to_exit ...
+  );
 
   res.fixation_state_m1 = fs_m1;
   res.fixation_state_m2 = fs_m2;
-  acquired_m1 = fs_m1.acquired;
-  acquired_m2 = fs_m2.acquired;
+  acquired_m1 = fs_m1.ever_acquired;
+  acquired_m2 = fs_m2.ever_acquired;
   acquired = fs_m1.acquired && fs_m2.acquired;
 end
 

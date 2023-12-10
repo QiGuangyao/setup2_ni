@@ -121,6 +121,7 @@ err = [];
 try
 
 while ( ~ptb.util.is_esc_down() && ...
+      proceed(task_interface) && ...
       (isempty(trial_data) || num_entries(trial_data) < max_num_trials) )
   drawnow;
   

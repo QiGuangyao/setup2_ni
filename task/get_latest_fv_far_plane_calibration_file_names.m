@@ -1,12 +1,16 @@
-function [m1_p, m2_p] = get_latest_fv_far_plane_calibration_file_names()
+function [m1_p, m2_p] = get_latest_fv_far_plane_calibration_file_names(base_sesh_dir)
+
+if ( nargin < 1 )
+  base_sesh_dir = dsp3.datedir;
+end
 
 fv_conf = fv.config.load();
-sesh_dir = fullfile( fv_conf.PATHS.data, dsp3.datedir );
+sesh_dir = fullfile( fv_conf.PATHS.data, base_sesh_dir );
 m1_dir = fullfile( sesh_dir, 'face_calibration_m1' );
 m2_dir = fullfile( sesh_dir, 'face_calibration_m2' );
 
-m1_p = get_latest_far_plane_calibration_filename( dsp3.datedir, m1_dir );
-m2_p = get_latest_far_plane_calibration_filename( dsp3.datedir, m2_dir );
+m1_p = get_latest_far_plane_calibration_filename( base_sesh_dir, m1_dir );
+m2_p = get_latest_far_plane_calibration_filename( base_sesh_dir, m2_dir );
 
 end
 
