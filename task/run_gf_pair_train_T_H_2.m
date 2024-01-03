@@ -1,6 +1,8 @@
-function run_gf_pair_train_T_H_1( reward_duration_s,...
+function run_gf_pair_train_T_H_2( reward_duration_s,...
   dur_m1,...
   dur_m2,...
+  dur_m1_delay,...
+  dur_m2_delay,...
   initial_fixation_duration_m1,...
   initial_fixation_duration_m2,...
   initial_fixation_state_duration,...
@@ -38,18 +40,18 @@ end
 proj_p = fileparts( which(mfilename) );
 
 bypass_trial_data = false ;    
-save_data = true;
-full_screens = true;
+save_data = false;
+full_screens = false;
 max_num_trials = max_num_trials;
 
 draw_m2_eye_roi = false;
-draw_m1_gaze = false;
-draw_m2_gaze = false;
+draw_m1_gaze = true;
+draw_m2_gaze = true;
 draw_m2_eye_cue = false;
 
-enable_spatial_rule = false; 
-enable_spatial_cue = false;
-enable_fix_delay = false;
+enable_spatial_rule = true; 
+enable_spatial_cue = true;
+enable_fix_delay = true;
 enable_actor_response = false;
 enable_response_feedback = true;
 enable_gaze_triggered_delay = false;
@@ -73,7 +75,8 @@ timing.spatial_cue_state_chooser_duration = 0.1;
 timing.gaze_triggered_delay = 4;
 timing.actor_response_state_duration = 1;
 timing.actor_response_state_chooser_duration = 0.1;
-timing.fixation_delay_duration = 1;
+timing.fixation_delay_duration = 0.2;
+timing.fixation_delay_state_duration = 1;
 timing.iti_duration = 1.2;
 % timing.iti_duration = 4;
 timing.error_duration = 1.4; % timeout in case of failure to fixate
@@ -98,7 +101,7 @@ name_of_m2 ='M2_hitch';% 'Hitch';
 %}
 
 fix_cross_size = 150; % px
-fix_target_size = 100; % px
+fix_target_size = 150; % px
 fix_circular_size = 100;
 error_square_size = 100;
 
@@ -138,14 +141,14 @@ if ( full_screens )
   win_m1 = open_window( 'screen_index', 1, 'screen_rect', [] );% 1 for M1 
   win_m2 = open_window( 'screen_index', 2, 'screen_rect', [] );% 3 for M2
 else
-  win_m1 = open_window( 'screen_index', 0, 'screen_rect', [0, 0, 800, 800] );
-  win_m2 = open_window( 'screen_index', 0, 'screen_rect', [800, 0, 1600, 800] );
+  win_m1 = open_window( 'screen_index', 4, 'screen_rect', [0, 0, 400, 400] );
+  win_m2 = open_window( 'screen_index', 4, 'screen_rect', [400, 0, 800, 400] );
 end
 
 %{
   remap target and stimuli
 %}
-screen_height = 6.7;% cm
+screen_height = 8;% cm
 
 monitor_height = 27.3;
 if enable_remap
@@ -343,12 +346,12 @@ while ( ~ptb.util.is_esc_down() && ...
   m1_correct/trial_inde,m2_correct/trial_inde
 
   if acquired_m1
-    [dur_m1,'m1 success']
+%     [dur_m1,'m1 success']
 %     deliver_reward( task_interface, 0, dur_m1*acquired_m1);
   end
   
   if acquired_m2
-    [dur_m2,'m2 success']
+%     [dur_m2,'m2 success']
 %     deliver_reward( task_interface, 1, dur_m2*acquired_m2);
   end
 
@@ -374,7 +377,7 @@ while ( ~ptb.util.is_esc_down() && ...
   end
 
   if acquired_m1 & acquired_m2
-    'both success'
+%     'both success'
     WaitSecs( max(dur_m1, dur_m2) + timing.waitSecs);
     deliver_reward( task_interface, 0:1, reward_duration_s*acquired_m1*acquired_m2);
   end
@@ -387,15 +390,18 @@ while ( ~ptb.util.is_esc_down() && ...
   %{
     spatial rule
   %}
-  
+  % select gaze trial
+  trial_desc.is_gaze_trial = true;
   is_gaze_trial = trial_desc.is_gaze_trial;
+
+
   if (enable_spatial_rule) 
     [trial_rec.spatial_rule, acquired] = state_spatial_rule( is_gaze_trial );
-    if ( ~acquired )
-      % error
-      error_timeout_state( timing.error_duration,1,1);
-      continue
-    end
+%     if ( ~acquired )
+%       % error
+%       error_timeout_state( timing.error_duration,1,1);
+%       continue
+%     end
   end
 
 %   if ( 1 )  % bridge reward
@@ -434,21 +440,34 @@ while ( ~ptb.util.is_esc_down() && ...
   spatial_cue_choice = [];
   if ( enable_spatial_cue )
     swap_signaler_dir = trial_desc.signaler_target_dir == 1;
+    
     laser_index = trial_desc.laser_index;
     [trial_rec.spatial_cue, spatial_cue_choice] = ...
       state_spatial_cue( swap_signaler_dir, laser_index );
+
+    
+    if (spatial_cue_choice==2 & swap_signaler_dir) | (spatial_cue_choice==1 & ~swap_signaler_dir)
+      ['m2_target_success']
+      deliver_reward( task_interface, 1, dur_m2 );
+    else
+      error_timeout_state( timing.error_duration,0,1 );
+      continue
+    end
 %     if ( isempty(spatial_cue_choice))
 %       % error
 %       error_timeout_state( timing.error_duration );
 %       continue
 %     end
   end
-  
-  if ( enable_spatial_cue && isempty(spatial_cue_choice) )
-    % error
-    error_timeout_state( timing.error_duration,0,1 );
-    continue
-  end
+
+%   swap_signaler_dir,spatial_cue_choice
+
+
+%   if ( enable_spatial_cue && isempty(spatial_cue_choice) )
+%     % error
+%     error_timeout_state( timing.error_duration,0,1 );
+%     continue
+%   end
 
   %{
     fixation delay
@@ -456,10 +475,15 @@ while ( ~ptb.util.is_esc_down() && ...
   
   if ( enable_fix_delay )
     trial_rec.fixation_delay = state_fixation_delay();
+    
+    trial_rec.fixation_delay.fixation_state_m1.acquired
+    trial_rec.fixation_delay.fixation_state_m2.acquired
 
-    if (~trial_rec.fixation_delay.fixation_state_m2.acquired)
+    if (~trial_rec.fixation_delay.fixation_state_m2.acquired | ~trial_rec.fixation_delay.fixation_state_m1.acquired)
       % error
-      error_timeout_state( timing.error_duration,0,1 );
+      error_timeout_state( timing.error_duration, ...
+        ~trial_rec.fixation_delay.fixation_state_m1.acquired, ...
+        ~trial_rec.fixation_delay.fixation_state_m2.acquired );
       continue
     end
   end
@@ -575,9 +599,11 @@ function [res, acquired] = state_spatial_rule(is_gaze_trial)
   %%%%%%%%
   function draw_spatial_rule()
     if ( is_gaze_trial )
-      color = [255, 0, 0];
-    else
       color = [0, 0, 255];
+%       color = [255, 0, 0];
+    else
+      color = [255, 0, 0];
+%       color = [0, 0, 255];
     end
 
     r = get( actor_win.Rect );
@@ -689,25 +715,49 @@ function res = state_fixation_delay()
   send_message( task_interface.npxi_events, 'fixation_delay/enter' );
 
   abort_on_break = false;
-  loc_draw_cb = wrap_draw( {@draw_fixation_crosses, @maybe_draw_gaze_cursors},0,1 );
-  [fs_m1, fs_m2] = static_fixation2( ...
+  loc_draw_cb = wrap_draw(...
+    {@draw_fixation_crosses, @maybe_draw_gaze_cursors},1,1);
+  deliver_reward_m1_cb = @() deliver_reward(task_interface, 0, dur_m1_delay);
+  deliver_reward_m2_cb = @() deliver_reward(task_interface, 1, dur_m2_delay);
+  [fs_m1, fs_m2] = joint_fixation2( ...
     @time_cb, loc_draw_cb ...
-    , @() rect_pad(centered_rect(center_remap_m1,[100, 100]), target_padding), @get_m1_position ...
-    , @() rect_pad(centered_rect(center_remap_m2, [100, 100]), target_padding), @get_m2_position ...
-    , @local_update, timing.fixation_delay_duration ...
-    , timing.fixation_delay_duration, abort_on_break );
-
-
-%   [fs_m1, fs_m2] = static_fixation2( ...
-%     @time_cb, loc_draw_cb ...
-%     , @() centered_rect(win_m1.Center, [100, 100]), @get_m1_position ...
-%     , @() centered_rect(win_m2.Center, [100, 100]), @get_m2_position ...
-%     , @local_update, timing.fixation_delay_duration ...
-%     , timing.fixation_delay_duration, abort_on_break );
-
+    , @() rect_pad(m1_centered_rect_remap(fix_cross_size), cross_padding), @get_m1_position ...
+    , @() rect_pad(m2_centered_rect_remap(fix_cross_size), cross_padding), @get_m2_position ...
+    , @local_update ...
+    , timing.fixation_delay_duration...
+    , timing.fixation_delay_duration...
+    , timing.fixation_delay_state_duration ...
+    , [] ...
+    , 'm1_every_acq_callback', deliver_reward_m1_cb ...
+    , 'm2_every_acq_callback', deliver_reward_m2_cb ...
+    , 'overlap_duration_to_exit', timing.overlap_duration_to_exit ...
+  );
+  
   res = struct();
   res.fixation_state_m1 = fs_m1;
   res.fixation_state_m2 = fs_m2;
+  acquired_m1 = fs_m1.ever_acquired;
+  acquired_m2 = fs_m2.ever_acquired;
+  acquired = fs_m1.acquired && fs_m2.acquired;
+
+%   [fs_m1, fs_m2] = static_fixation2( ...
+%     @time_cb, loc_draw_cb ...
+%     , @() rect_pad(centered_rect(center_remap_m1,[100, 100]), target_padding), @get_m1_position ...
+%     , @() rect_pad(centered_rect(center_remap_m2, [100, 100]), target_padding), @get_m2_position ...
+%     , @local_update, timing.fixation_delay_duration ...
+%     , timing.fixation_delay_duration, abort_on_break );
+% 
+% 
+% %   [fs_m1, fs_m2] = static_fixation2( ...
+% %     @time_cb, loc_draw_cb ...
+% %     , @() centered_rect(win_m1.Center, [100, 100]), @get_m1_position ...
+% %     , @() centered_rect(win_m2.Center, [100, 100]), @get_m2_position ...
+% %     , @local_update, timing.fixation_delay_duration ...
+% %     , timing.fixation_delay_duration, abort_on_break );
+% 
+%   res = struct();
+%   res.fixation_state_m1 = fs_m1;
+%   res.fixation_state_m2 = fs_m2;
 end
 
 function [res, actor_resp_choice] = state_actor_response()

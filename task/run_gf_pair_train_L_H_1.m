@@ -45,6 +45,7 @@ max_num_trials = max_num_trials;
 draw_m2_eye_roi = false;
 draw_m1_gaze = false;
 draw_m2_gaze = false;
+draw_m2_eye_cue = true;%false;%true
 
 enable_spatial_rule = false; 
 enable_spatial_cue = false;
@@ -117,7 +118,7 @@ reward_duration_s = reward_duration_s;
 % reward_duration_s = 1;
 dur_m1 = dur_m1;% less than 0.25
 dur_m2 = dur_m1;% less than 0.25
-dur_key = 0.25; % reward of key press
+dur_key = 0.2; % reward of key press
 
 %{
   init
@@ -135,7 +136,7 @@ end
 % open windows before ni
 if ( full_screens )
   win_m1 = open_window( 'screen_index', 1, 'screen_rect', [] );% 1 for M1 
-  win_m2 = open_window( 'screen_index', 2, 'screen_rect', [] );% 3 for M2
+  win_m2 = open_window( 'screen_index', 3, 'screen_rect', [] );% 3 for M2
 else
   win_m1 = open_window( 'screen_index', 0, 'screen_rect', [0, 0, 800, 800] );
   win_m2 = open_window( 'screen_index', 0, 'screen_rect', [800, 0, 1600, 800] );
@@ -144,7 +145,7 @@ end
 %{
   remap target and stimuli
 %}
-screen_height = 10.5;% cm
+screen_height = 8;% cm
 
 monitor_height = 27.3;
 if enable_remap
@@ -168,8 +169,9 @@ if enable_remap
   center_remap_m2 = [0.5*win_m2.Width,y_axis_remap*win_m2.Height];
 end
 
-% center_screen_m1,
-% center_remap_m2
+center_screen_m1
+
+center_remap_m2
 
 % task interface
 %
@@ -194,6 +196,8 @@ trial_generator = MyTrialGenerator( trial_number );
 task_params = struct( 'timing', timing );
 task_params.center_screen_m1 = center_screen_m1;
 task_params.center_screen_m2 = center_screen_m2;
+task_params.center_remap_m1 = center_remap_m1;
+task_params.center_remap_m2 = center_remap_m2;
 task_params.trial_generator = trial_generator;
 task_params.gaze_coord_transform = task_interface.gaze_tracker.gaze_coord_transform;
 task_params.screen_height = screen_height;
@@ -221,6 +225,7 @@ task_params.full_screens = full_screens;
 task_params.max_num_trials = max_num_trials;
 task_params.draw_m1_gaze = draw_m1_gaze;
 task_params.draw_m2_gaze = draw_m2_gaze;
+task_params.draw_m2_eye_cue = draw_m2_eye_cue;
 task_params.enable_spatial_rule = enable_spatial_rule;
 task_params.enable_spatial_cue = enable_spatial_cue;
 
@@ -854,6 +859,9 @@ function frame_rect(win, varargin)
 end
 
 function maybe_draw_gaze_cursors()
+  if (draw_m2_eye_cue)
+    fill_oval( win_m1, [255, 0, 255], centered_rect(get_m2_position()+[0,-center_remap_m2(2)/1.5], 100) );
+  end
   if ( draw_m1_gaze )
     fill_oval( win_m1, [255, 0, 255], centered_rect(get_m1_position(), 50) );
   end
