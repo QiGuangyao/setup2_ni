@@ -79,12 +79,12 @@ classdef AsyncVideoInterface < handle
 
       if ( ~isempty(obj.serial_result) )
         % serial
-        assert( isempty(obj.par_future) );
+%         assert( isempty(obj.par_future) );
         res = obj.serial_result;
         obj.serial_result = [];
       else
         % parallel
-        assert( ~isempty(obj.par_future) );
+%         assert( ~isempty(obj.par_future) );
         wait( obj.par_future );
 
         if ( ~isempty(obj.par_future.Error) )

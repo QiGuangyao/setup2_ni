@@ -25,6 +25,7 @@ classdef MyTrialGenerator < handle
       td.is_gaze_trial = obj.trial_types(obj.trial_index) == 1;
       td.signaler_target_dir = obj.signaler_target_dirs(obj.trial_index);
       td.laser_index = double( rand() > 0.5 );
+      td.prob_gaze_triggered_delay = 1;
 
       if ( 0 )
         td.signaler_target_dir = 1;
