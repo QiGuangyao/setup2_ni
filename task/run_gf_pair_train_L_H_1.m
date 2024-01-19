@@ -45,7 +45,7 @@ max_num_trials = max_num_trials;
 draw_m2_eye_roi = false;
 draw_m1_gaze = false;
 draw_m2_gaze = false;
-draw_m2_eye_cue = true;%false;%true
+draw_m2_eye_cue = false;%false;%true
 
 enable_spatial_rule = false; 
 enable_spatial_cue = false;
@@ -136,7 +136,7 @@ end
 % open windows before ni
 if ( full_screens )
   win_m1 = open_window( 'screen_index', 1, 'screen_rect', [] );% 1 for M1 
-  win_m2 = open_window( 'screen_index', 3, 'screen_rect', [] );% 3 for M2
+  win_m2 = open_window( 'screen_index', 2, 'screen_rect', [] );% 3 for M2
 else
   win_m1 = open_window( 'screen_index', 0, 'screen_rect', [0, 0, 800, 800] );
   win_m2 = open_window( 'screen_index', 0, 'screen_rect', [800, 0, 1600, 800] );
@@ -145,7 +145,7 @@ end
 %{
   remap target and stimuli
 %}
-screen_height = 8;% cm
+screen_height = 8.1;% cm
 
 monitor_height = 27.3;
 if enable_remap

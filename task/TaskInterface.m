@@ -10,7 +10,7 @@ classdef TaskInterface < handle
 
     windows = {};
 
-    put_m1_gaze_in_center = false;
+    put_m1_gaze_in_center = true;%true;%false
     put_m2_gaze_in_center = false;
 
     bypass_video = false;

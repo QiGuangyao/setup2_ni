@@ -1,4 +1,4 @@
-function run_gf_pair_train_T_H_2( reward_duration_s,...
+function run_gf_pair_train_L_H_stage2( reward_duration_s,...
   dur_m1,...
   dur_m2,...
   dur_m1_delay,...
@@ -40,7 +40,7 @@ end
 proj_p = fileparts( which(mfilename) );
 
 bypass_trial_data = false ;    
-save_data = false;
+save_data = true;
 full_screens = true;
 max_num_trials = max_num_trials;
 
@@ -59,12 +59,9 @@ enable_gaze_triggered_delay = true;
 enable_remap = true;
 verbose = false;
 
-
-
 %{
   timing parameters
 %}
-
 timing = struct();
 timing.initial_fixation_duration_m1 = initial_fixation_duration_m1;
 timing.initial_fixation_duration_m2 = initial_fixation_duration_m2;
@@ -92,45 +89,42 @@ timing.overlap_duration_to_exit = overlap_duration_to_exit;
 %{
 name of monkeys
 %}
-name_of_m1 ='M1_tt';% 'lynch';%'M1_simu';
+name_of_m1 ='M1_lynch';% 'lynch';%'M1_simu';
 name_of_m2 ='M2_hitch';% 'Hitch';
-
-
 
 %{
   stimuli parameters
 %}
 
-fix_cross_size = 150; % px
-fix_target_size = 150; % px
+lr_eccen = 0; % px amount to shift left and right targets towards screen edges
+fix_cross_size = 200; % px
+fix_target_size = 100; % px
 fix_circular_size = 100;
 error_square_size = 100;
-lr_eccen = 0; % px amount to shift left and right targets towards screen edges
 
 % add +/- target_padding
-target_padding = 100;
-cross_padding = 75;
+target_padding = 50;
+cross_padding = 200;
 circular_padding = 50;
 
 % sptial rule width
 spatial_rule_width = 8;
 
+
+
 %{
   reward parameters
 %}
-
 reward_duration_s = reward_duration_s;
 % reward_duration_s = 1;
 dur_m1 = dur_m1;% less than 0.25
 dur_m2 = dur_m1;% less than 0.25
-dur_key = 0.1;%rrrrrr
+dur_key = 0.25;
 
 %{
   init
 %}
-
 save_ident = strrep( datestr(now), ':', '_' );
-
 if ( save_data )
   save_p = fullfile( proj_p, 'data', save_ident );
   shared_utils.io.require_dir( save_p );
@@ -150,8 +144,7 @@ end
 %{
   remap target and stimuli
 %}
-screen_height = 9.5;% cm
-
+screen_height = 8;% cm
 monitor_height = 27.3;% cm
 if enable_remap
 %   prompt = {'Enter left screen height (cm):'};
@@ -166,25 +159,18 @@ if enable_remap
     y_axis_screen = 0.5;
     y_axis_remap = 0.5;
   end
-    
   center_screen_m1 = [0.5*win_m1.Width,y_axis_screen*win_m1.Height];
   center_screen_m2 = [0.5*win_m2.Width,y_axis_screen*win_m2.Height];
-
   center_remap_m1 = [0.5*win_m1.Width,y_axis_remap*win_m1.Height];
   center_remap_m2 = [0.5*win_m2.Width,y_axis_remap*win_m2.Height];
 end
 
 % task interface
-%
-% 
 t0 = datetime();
 task_interface = TaskInterface( t0, save_p, {win_m1, win_m2} );
 initialize( task_interface );
 
 % trial data
-%
-%
-
 % trial_generator = DefaultTrialGenerator();
 %{
 generate trials
@@ -201,11 +187,8 @@ task_params.trial_generator = trial_generator;
 task_params.gaze_coord_transform = task_interface.gaze_tracker.gaze_coord_transform;
 task_params.screen_height = screen_height;
 task_params.monitor_height = monitor_height;
-
 task_params.center_screen_m1 = center_remap_m1;
 task_params.center_screen_m1 = center_remap_m1;
-
-
 task_params.reward_duration_s = reward_duration_s;
 task_params.dur_m1 = dur_m1;
 task_params.dur_m2 = dur_m2;
@@ -272,9 +255,7 @@ reward_key_timers.Value = struct( ...
 %{
   main trial sequence
 %}
-
 err = [];
-
 try
 
 trial_inde = 0;
@@ -345,30 +326,15 @@ while ( ~ptb.util.is_esc_down() && ...
   m1_correct/trial_inde,m2_correct/trial_inde
 
   if acquired_m1
-%     [dur_m1,'m1 success']
+    ['m1 initial success']
 %     deliver_reward( task_interface, 0, dur_m1*acquired_m1);
   end
   
   if acquired_m2
-%     [dur_m2,'m2 success']
+    ['m2 intial success']
 %     deliver_reward( task_interface, 1, dur_m2*acquired_m2);
   end
 
-
-%   if ( ~acquired )
-%     % error
-%     error_timeout_state( timing.error_duration,1,1);
-%     continue
-%   end
-% 
-  % deliver_reward( task_interface, 0, dur_m1*acquired_m1 );
-  % deliver_reward( task_interface, 1, dur_m2*acquired_m2 );
-
-%   if ( (~acquired_m1) | (~acquired_m2))
-%     % error
-%     error_timeout_state( timing.error_duration,1,1);
-%     continue
-%   end
   if ( (~acquired_m1) || (~acquired_m2))
     % error
     error_timeout_state( timing.error_duration,1,1, ~acquired_m1, ~acquired_m2);
@@ -376,24 +342,17 @@ while ( ~ptb.util.is_esc_down() && ...
   end
 
   if acquired_m1 & acquired_m2
-%     'both success'
+    ['both initial success']
     WaitSecs( max(dur_m1, dur_m2) + timing.waitSecs);
     deliver_reward( task_interface, 0:1, reward_duration_s*acquired_m1*acquired_m2);
   end
-
-
-% 
-%   deliver_reward( task_interface, 0:1, reward_duration_s );
-
 
   %{
     spatial rule
   %}
   % select gaze trial
-  trial_desc.is_gaze_trial = true;
+  trial_desc.is_gaze_trial = true; % true just for gaze trials at current stage
   is_gaze_trial = trial_desc.is_gaze_trial;
-
-
   if (enable_spatial_rule) 
     [trial_rec.spatial_rule, acquired] = state_spatial_rule( is_gaze_trial );
 %     if ( ~acquired )
