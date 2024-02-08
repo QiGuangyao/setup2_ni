@@ -142,6 +142,9 @@ start( vi2 );
 
 t0 = tic();
 last_t = nan;
+vi1_has_frames = true;
+vi2_has_frames = true;
+
 while ( ~vi1.FramesAvailable || ~vi2.FramesAvailable )
   if ( ParallelErrorChecker.has_error(TaskInterface.TASK_ABORTED_FILE_PREFIX) )
     success = false;
@@ -152,6 +155,8 @@ while ( ~vi1.FramesAvailable || ~vi2.FramesAvailable )
     last_t = toc( t0 );
   end
   if ( toc(t0) > init_timeout )
+    vi1_has_frames = vi1.FramesAvailable;
+    vi2_has_frames = vi2.FramesAvailable;
     success = false;
     break
   end
@@ -190,7 +195,9 @@ if ( success )
 else
   ParallelErrorChecker.set_error( ...
     AsyncVideoInterface.VIDEO_ERROR_FILE_PREFIX ...
-    , sprintf('Failed to start capturing frames within %0.3f s\n', init_timeout) );
+    , sprintf(['Failed to start capturing frames within %0.3f s\n' ...
+    ,  'Cam 1 had frames? %d | Cam 2 had frames? %d'] ...
+    , init_timeout, double(vi1_has_frames), double(vi2_has_frames)));
 end
   
 stop( vi1 );

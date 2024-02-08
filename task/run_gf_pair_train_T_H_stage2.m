@@ -1,6 +1,4 @@
-function run_gf_pair_train_T_H_stage2( ...
-  max_num_trials...
-  )
+function run_gf_pair_train_T_H_stage2()
 
 cd 'C:\Users\setup2\source\setup2_ni\deps\network-events\Resources\Matlab';
 
@@ -15,6 +13,8 @@ m2_eye_roi_padding_x = 0;
 m2_eye_roi_padding_y = 100;
 m2_eye_roi = get_eye_roi_from_calibration_file( ...
   m1_calib, m2_eye_roi_padding_x, m2_eye_roi_padding_y );
+m2_eye_roi = get_face_roi_from_calibration_file( m1_calib, 0, 0 );
+fprintf( 'm2 eye roi: %d %d %d %d', m2_eye_roi );
 % m2_face_roi = get_face_roi_from_calibration_file( m1_calib, 0, 0 );
 
 catch roi_err
@@ -29,12 +29,13 @@ if ( isempty(pool) )
   parpool( 2 );
 end
 
-proj_p = fileparts( which(mfilename) );
+proj_p_image = fileparts( which(mfilename) );
+proj_p = 'D:\tempData';
 
 bypass_trial_data = false ;    
 save_data = true;
 full_screens = true;
-max_num_trials = 50;
+max_num_trials = 100;
 
 draw_m2_eye_roi = false;
 draw_m1_gaze = false;
@@ -48,61 +49,69 @@ verbose = false;
   timing parameters
 %}
 timing = struct();
-
-% 1 intial fixation
-timing.initial_fixation_duration_m1 = 0.2;
-timing.initial_fixation_duration_m2 = 0.4;
+%%% stages of the task
+% 1 fixation with block rule
+enbale_fixation_with_block_rule = true;
+timing.initial_fixation_duration_m1 = 0.3;
+timing.initial_fixation_duration_m2 = 0.3;
 timing.initial_fixation_state_duration = 1.5;
 
-timing.initial_reward_m1 = 0.2;
-timing.initial_reward_m2 = 0.2;
-timing.init_reward_m1_m2 = 0.4;
-
+timing.initial_reward_m1 = 0.1;
+timing.initial_reward_m2 = 0.1;
+timing.init_reward_m1_m2 = 0.2;
 
 % 2 spatial rule
-enable_spatial_rule = false; 
+if always_draw_spatial_rule_outline
+  enable_spatial_rule = false; 
+else
+  enable_spatial_rule = true; 
+end
 timing.spatial_rule_fixation_duration = 0.15;
 timing.spatial_rule_state_duration = 0.5;
-timing.spatial_rule_reward_m1 = 0.2;
-timing.spatial_rule_reward_m2 = 0.2;
-timing.spatial_rule_reward_m1_m2 = 0.4;
-
-
+timing.spatial_rule_reward_m1 = 0.1;
+timing.spatial_rule_reward_m2 = 0.00;
+timing.spatial_rule_reward_m1_m2 = 0.2;
 
 
 % 3 gaze_delay
-enable_gaze_triggered_delay = true;
+enable_gaze_triggered_delay = false;
 timing.gaze_triggered_delay = 1;
-timing.gaze_delay_reward_m1 = 0.2;
-timing.gaze_delay_reward_m2 = 0.2;
+timing.gaze_delay_reward_m1 = 0.05;
+timing.gaze_delay_reward_m2 = 0.00;
 timing.gaze_delay_reward_m1_m2 = 0.4;
+timing.gaze_delay_fixation_time = 0.0;
 
 
 % 4 spatial cue
 enable_spatial_cue = true;
-timing.spatial_cue_state_duration = 5;
-timing.spatial_cue_state_chooser_duration = 0.1;
-timing.spatial_cue_reward_m1 = 0.2;
-timing.spatial_cue_reward_m2 = 0.2;
-timing.spatial_cue_reward_m1_m2 = 0.4;
+timing.spatial_cue_state_duration = 1.2;
+timing.spatial_cue_state_chooser_duration = 0.5;
+timing.spatial_cue_reward_m1 = 0.0;
+timing.spatial_cue_reward_m2 = 0.0;
+timing.spatial_cue_reward_m1_m2 = 0.0;
+
 
 % 5 fixation_delay
-enable_fix_delay = true;
+enable_fix_delay = false;
 timing.fixation_delay_duration = 0.2;
 timing.fixation_delay_state_duration = 1;
 timing.fixation_delay_reward_m1 = 0.2;
 timing.fixation_delay_reward_m2 = 0.2;
-timing.fixation_delay_reward_m1_m2 = 0.4;
+timing.fixation_delay_reward_m1_m2 = 0.0;
+
 
 % 6 actor response
-enable_actor_response = false;
-timing.actor_response_state_duration = 3;
+enable_actor_response = true;
+timing.actor_response_state_duration =2;
 timing.actor_response_state_chooser_duration = 0.1;
+timing.actor_response_state_signaler_duration = 0.2;
+timing.actor_response_reward_m1 = 1;
+timing.actor_response_reward_m2 = 1;
 
 % 7 feedback & reward
-enable_response_feedback = false;
-timing.iti_duration = 1.2;
-timing.error_duration = 1.4; % timeout in case of failure to fixate
+enable_response_feedback = true;
+timing.iti_duration = 1.5;
+timing.error_duration = 1.8; % timeout in case of failure to fixate
 timing.feedback_duration = 1;
 timing.waitSecs = 0.05;
 
@@ -114,25 +123,25 @@ timing.overlap_duration_to_exit = nan;
 %{
 name of monkeys
 %}
-name_of_m1 ='M1_tt';% 'lynch';%'M1_simu';
+name_of_m1 ='M1_tara';% 'lynch';%'M1_simu';
 name_of_m2 ='M2_hitch';% 'Hitch';
 
 %{
   stimuli parameters
 %}
-fix_cross_size = 200; % px
-fix_target_size = 200; % px
+fix_cross_size = 150; % px
+fix_target_size = 150; % px
 fix_circular_size = 200;
-error_square_size = 100;
+error_square_size = 150;
 lr_eccen = 0; % px amount to shift left and right targets towards screen edges
 
 % add +/- target_padding
 target_padding = 100;
-cross_padding = 75;
+cross_padding = 100;
 circular_padding = 100;
 
 % sptial rule width
-spatial_rule_width = 8;
+spatial_rule_width = 10;
 
 %{
   reward parameters
@@ -163,7 +172,7 @@ end
 %{
   remap target and stimuli
 %}
-screen_height = 8.9;% cm
+screen_height = 7.4;% cm
 monitor_height = 27.3;% cm
 if enable_remap
 %   prompt = {'Enter left screen height (cm):'};
@@ -224,6 +233,8 @@ task_params.max_num_trials = max_num_trials;
 task_params.draw_m1_gaze = draw_m1_gaze;
 task_params.draw_m2_gaze = draw_m2_gaze;
 task_params.draw_m2_eye_cue = draw_m2_eye_cue;
+task_params.always_draw_spatial_rule_outline = always_draw_spatial_rule_outline;
+task_params.enbale_fixation_with_block_rule = enbale_fixation_with_block_rule;
 task_params.enable_spatial_rule = enable_spatial_rule;
 task_params.enable_spatial_cue = enable_spatial_cue;
 task_params.enable_gaze_triggered_delay = enable_gaze_triggered_delay;
@@ -252,13 +263,13 @@ task_interface.task_data = trial_data;
 % task
 %
 % 
-cross_im = ptb.Image( win_m1, imread(fullfile(proj_p, 'images/cross.jpg')));
+cross_im = ptb.Image( win_m1, imread(fullfile(proj_p_image, 'images/cross.jpg')));
 % rotated_cross_im = ptb.Image( win_m1, imread(fullfile(proj_p, 'images/rotated_cross.jpg')));
 
 % rewarded (correct) target
-targ1_im_m2 = ptb.Image( win_m2, imread(fullfile(proj_p, 'images/rect.jpg')));
+targ1_im_m2 = ptb.Image( win_m2, imread(fullfile(proj_p_image, 'images/rect.jpg')));
 % opposite target
-targ2_im_m2 = ptb.Image( win_m2, imread(fullfile(proj_p, 'images/rotated_rect.jpg')));
+targ2_im_m2 = ptb.Image( win_m2, imread(fullfile(proj_p_image, 'images/rotated_rect.jpg')));
 % m1 targets
 % targ_im_m1 = ptb.Image( win_m1, imread(fullfile(proj_p, 'images/circle.jpg')));
 
@@ -303,7 +314,7 @@ while ( ~ptb.util.is_esc_down() && ...
   %}
 
   if ( 0 )
-    acq = state_gaze_triggered_delay( m2_eye_roi, timing.gaze_triggered_delay, false );
+    acq = state_gaze_triggered_delay( m2_eye_roi, timing.gaze_triggered_delay, false, timing.gaze_delay_fixation_time );
     if ( ~acq )
       % actor failed to look at signaler's eyes in time
       error_timeout_state( timing.error_duration,1,1);
@@ -317,31 +328,37 @@ while ( ~ptb.util.is_esc_down() && ...
   %{
     fixation with block rule
   %}
-
-  [trial_rec.fixation_with_block_rule, acquired_m1,acquired_m2] = state_fixation_with_block_rule();
-  ['m1:';'m2:']
-  m1_correct = m1_correct+acquired_m1;
-  m2_correct = m2_correct+acquired_m2;
-  m1_correct/trial_inde,m2_correct/trial_inde
-
-  if acquired_m1
-    ['m1 initial success']
-  end
   
-  if acquired_m2
-    ['m2 intial success']
-  end
+  if enbale_fixation_with_block_rule
 
-  if ( (~acquired_m1) || (~acquired_m2))
-    % error
-    error_timeout_state( timing.error_duration,1,1, ~acquired_m1, ~acquired_m2);
-    continue
-  end
 
-  if acquired_m1 & acquired_m2
-    ['both initial success']
-    WaitSecs( max(timing.initial_reward_m1, timing.initial_reward_m2) + timing.waitSecs);
-    deliver_reward( task_interface, 0:1, timing.init_reward_m1_m2);
+    [trial_rec.fixation_with_block_rule, acquired_m1,acquired_m2] = state_fixation_with_block_rule();
+    ['m1:';'m2:']
+    m1_correct = m1_correct+acquired_m1;
+    m2_correct = m2_correct+acquired_m2;
+    m1_correct/trial_inde,m2_correct/trial_inde
+  
+    if acquired_m1
+      ['m1 initial success']
+    end
+    
+    if acquired_m2
+      ['m2 intial success']
+    end
+  
+    if ( (~acquired_m1) || (~acquired_m2))
+%     if ((~acquired_m2))
+      % error
+      error_timeout_state( timing.error_duration,1,1, ~acquired_m1, ~acquired_m2);
+      continue
+    end
+  
+    if acquired_m1 & acquired_m2
+      ['both initial success']
+%       WaitSecs( max(timing.initial_reward_m1, timing.initial_reward_m2) + timing.waitSecs);
+      deliver_reward( task_interface, 0:1, timing.init_reward_m1_m2);
+%       deliver_reward( task_interface, 0, timing.init_reward_m1_m2);
+    end
   end
 
   %{
@@ -368,22 +385,28 @@ while ( ~ptb.util.is_esc_down() && ...
   %}
 
   if ( enable_gaze_triggered_delay && rand() < trial_desc.prob_gaze_triggered_delay )
-    [acq, m2_fixated] = state_gaze_triggered_delay( m2_eye_roi, timing.gaze_triggered_delay, is_gaze_trial );
+    [acq, m2_fixated] = state_gaze_triggered_delay( m2_eye_roi, timing.gaze_triggered_delay, is_gaze_trial, timing.gaze_delay_fixation_time );
     trial_rec.gaze_triggered_delay.acquired = acq;
 
-    if ( m2_fixated )
-      WaitSecs( timing.init_reward_m1_m2 + timing.waitSecs);
-      deliver_reward( task_interface, 1, timing.gaze_delay_reward_m2 );
-    end
+    deliver_reward( task_interface, 1, timing.gaze_delay_reward_m2* m2_fixated);
+    deliver_reward( task_interface, 0, timing.gaze_delay_reward_m1* acq);
 
-    if ( acq )
-      WaitSecs( timing.init_reward_m1_m2 + timing.waitSecs);
-      deliver_reward( task_interface, 0, timing.gaze_delay_reward_m1 );
-    else
-%       % actor failed to look at signaler's eyes in time
-%       error_timeout_state( timing.error_duration,1,1);
-%       continue
-    end
+    fprintf( '\n Gaze triggered delay m1 looked: %d\n', acq );
+    fprintf( '\n Gaze triggered delay m2 fixated: %d\n', m2_fixated );
+    
+%     if ( m2_fixated )
+%       WaitSecs( timing.init_reward_m1_m2 + timing.waitSecs);
+%       deliver_reward( task_interface, 1, timing.gaze_delay_reward_m2 );
+%     end
+% 
+%     if ( acq )
+%       WaitSecs( timing.init_reward_m1_m2 + timing.waitSecs);
+%       deliver_reward( task_interface, 0, timing.gaze_delay_reward_m1 );
+%     else
+% %       % actor failed to look at signaler's eyes in time
+% %       error_timeout_state( timing.error_duration,1,1);
+% %       continue
+%     end
   end
 
   %{
@@ -398,11 +421,14 @@ while ( ~ptb.util.is_esc_down() && ...
     [trial_rec.spatial_cue, spatial_cue_choice] = ...
       state_spatial_cue( swap_signaler_dir, laser_index, is_gaze_trial );
 
-    
+    spatial_cue_choice,
+    swap_signaler_dir,
     if (spatial_cue_choice==2 & swap_signaler_dir) | (spatial_cue_choice==1 & ~swap_signaler_dir)
       ['m2_target_success']
-      WaitSecs( timing.init_reward_m1_m2 + timing.waitSecs);
+%       WaitSecs( timing.init_reward_m1_m2 + timing.waitSecs);
       deliver_reward( task_interface, 1, timing.spatial_cue_reward_m2);
+
+      %if trial_rec.spatial_cue.actor_fixation trial_rec.spatial_cue.signaler_choice
     else
       error_timeout_state( timing.error_duration,0,1 );
       continue
@@ -430,8 +456,13 @@ while ( ~ptb.util.is_esc_down() && ...
   if ( enable_fix_delay )
     trial_rec.fixation_delay = state_fixation_delay( is_gaze_trial );
     
-    trial_rec.fixation_delay.fixation_state_m1.acquired
-    trial_rec.fixation_delay.fixation_state_m2.acquired
+    if trial_rec.fixation_delay.fixation_state_m1.acquired
+      ['m1_fixation_delay_success']
+    end
+
+    if trial_rec.fixation_delay.fixation_state_m2.acquired
+      ['m1_fixation_delay_success']
+    end
 
     if (~trial_rec.fixation_delay.fixation_state_m2.acquired | ~trial_rec.fixation_delay.fixation_state_m1.acquired)
       % error
@@ -462,10 +493,13 @@ while ( ~ptb.util.is_esc_down() && ...
     feedback
   %}
   
-  if ( enable_response_feedback )    
+  if ( enable_actor_response & enable_response_feedback)    
     if ( 1 - actor_resp_choice == trial_desc.signaler_target_dir )
       % correct
-      deliver_reward( task_interface, 0:1, [timing.initial_reward_m1, timing.initial_reward_m2] );%
+      'actor success'
+      deliver_reward( task_interface, 0:1, [timing.actor_response_reward_m1, timing.actor_response_reward_m2] );%
+    else
+      error_timeout_state( timing.error_duration,1,0 );
     end
 
     state_response_feedback();
@@ -579,7 +613,7 @@ function [res, acquired] = state_spatial_rule(is_gaze_trial)
   end
 end
 
-function [actor_success, signaler_fixated] = state_gaze_triggered_delay(trigger_roi, timeout, is_gaze_trial)
+function [actor_success, signaler_fixated] = state_gaze_triggered_delay(trigger_roi, timeout, is_gaze_trial, fix_time)
   if ( isempty(trigger_roi) )
     trigger_roi = nan( 1, 4 );
   end
@@ -591,6 +625,8 @@ function [actor_success, signaler_fixated] = state_gaze_triggered_delay(trigger_
   signaler_win = win_m2;
   actor_win = win_m1;
   t0 = tic();
+  fix_state = FixationStateTracker( toc(t0) );
+
   while ( toc(t0) < timeout )
     local_update();
     loc_draw_cb();
@@ -604,12 +640,19 @@ function [actor_success, signaler_fixated] = state_gaze_triggered_delay(trigger_
       signaler_fixated = false;
     end
 
-    if ( actor_pos(1) >= trigger_roi(1) && actor_pos(1) <= trigger_roi(3) && ...
-         actor_pos(2) >= trigger_roi(2) && actor_pos(2) <= trigger_roi(4) )
+    update( fix_state, actor_pos(1), actor_pos(2), toc(t0), fix_time, trigger_roi );
+    if ( fix_state.ever_acquired )
       % actor looked within m2's eyes
       actor_success = true;
       break
     end
+
+%     if ( actor_pos(1) >= trigger_roi(1) && actor_pos(1) <= trigger_roi(3) && ...
+%          actor_pos(2) >= trigger_roi(2) && actor_pos(2) <= trigger_roi(4) )
+%       % actor looked within m2's eyes
+%       actor_success = true;
+%       break
+%     end
   end
 
   %%
@@ -651,7 +694,10 @@ function [res, signaler_choice] = state_spatial_cue(swap_signaler_dir, laser_ind
     , signaler_pos, actor_pos ...
     , signaler_rects_cb, actor_rects_cb ...
     , chooser_time, state_time, state_time ...
-  );
+    , 'on_chooser_choice', @do_deliver_reward_m2 ...
+    );
+
+  
 
   trigger( task_interface.laser_interface, laser_index );
 
@@ -660,6 +706,14 @@ function [res, signaler_choice] = state_spatial_cue(swap_signaler_dir, laser_ind
   res.actor_fixation = loc_actor_fixation;
 
   signaler_choice = loc_signaler_choice.ChoiceIndex;
+
+  function do_deliver_reward_m2()
+%     WaitSecs( 0.3 );
+%     if (spatial_cue_choice==2 & swap_signaler_dir) | (spatial_cue_choice==1 & ~swap_signaler_dir)
+      'test'
+%       deliver_reward( task_interface, 1, timing.spatial_cue_reward_m2 );
+%     end
+  end
 
   function draw_spatial_cues()
     signaler_rects = lr_rects( get(signaler_win.Rect), [fix_target_size, fix_target_size] );% [100,100];
@@ -747,6 +801,9 @@ end
 function [res, actor_resp_choice] = state_actor_response(is_gaze_trial)
   send_message( task_interface.npxi_events, 'actor_response/enter' );
 
+  on_fixator_fixation = @() deliver_reward( task_interface, 1, timing.actor_response_reward_m2 );
+  signaler_fix_time = timing.actor_response_state_signaler_duration;
+
   chooser_win = win_m1;
   chooser_pos = @get_m1_position;
 
@@ -763,18 +820,19 @@ function [res, actor_resp_choice] = state_actor_response(is_gaze_trial)
 %   fixator_rects_cb = @() centered_rect(fixator_win.Center, [100, 100]);
   
 
-  [signaler_choice, actor_fixation] = state_choice(...
+  [actor_choice, signaler_fixation] = state_choice(...
       @time_cb, @local_update, loc_draw_cb ...
     , chooser_pos, fixator_pos ...
     , chooser_rects_cb, fixator_rects_cb ...
-    , chooser_choice_time, state_time, state_time ...
+    , chooser_choice_time, signaler_fix_time, state_time ...
+    , 'on_fixator_fixation', on_fixator_fixation ...
   );
 
   res = struct();
-  res.signaler_choice = signaler_choice;
-  res.actor_fixation = actor_fixation;
+  res.actor_choice = actor_choice;
+  res.signaler_fixation = signaler_fixation;
 
-  actor_resp_choice = signaler_choice.ChoiceIndex - 1;
+  actor_resp_choice = actor_choice.ChoiceIndex - 1;
 
   function draw_response()
     actor_rects = lr_rects( get(chooser_win.Rect), [fix_circular_size, fix_circular_size] );
@@ -785,6 +843,7 @@ function [res, actor_resp_choice] = state_actor_response(is_gaze_trial)
 
     fill_oval( chooser_win, [255, 255, 255], actor_rects{1} );
     fill_oval( chooser_win, [255, 255, 255], actor_rects{2} );
+    draw_texture( fixator_win, cross_im, m2_centered_rect_screen(fix_cross_size) );
   end
 end
 
