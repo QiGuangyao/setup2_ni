@@ -88,17 +88,17 @@ enable_spatial_cue = true;
 timing.spatial_cue_state_duration = 1.5;
 timing.spatial_cue_state_chooser_duration = 0.8;
 timing.spatial_cue_reward_m1 = 0;
-timing.spatial_cue_reward_m2 = 0.8;
+timing.spatial_cue_reward_m2 = 0;
 timing.spatial_cue_reward_m1_m2 = 0;
 
 
 % 5 fixation_delay
-enable_fix_delay = false;
-timing.fixation_delay_duration = 0.2;
-timing.fixation_delay_state_duration = 1;
-timing.fixation_delay_reward_m1 = 0.2;
-timing.fixation_delay_reward_m2 = 0.2;
-timing.fixation_delay_reward_m1_m2 = 0.4;
+enable_fix_delay = true;
+timing.fixation_delay_duration = 0.5;
+timing.fixation_delay_state_duration = 1.5;
+timing.fixation_delay_reward_m1 = 0;
+timing.fixation_delay_reward_m2 = 0.7;
+timing.fixation_delay_reward_m1_m2 = 0;
 
 
 % 6 actor response
@@ -135,8 +135,8 @@ error_square_size = 100;
 lr_eccen = 0; % px amount to shift left and right targets towards screen edges
 
 % add +/- target_padding
-target_padding = 120;
-cross_padding = 100;
+target_padding = 135;
+cross_padding = 110;
 circular_padding = 50;
 
 % sptial rule width
@@ -171,7 +171,7 @@ end
 %{
   remap target and stimuli
 %}
-screen_height = 8.3;% cm
+screen_height = 9;% cm
 monitor_height = 27.3;% cm
 if enable_remap
 %   prompt = {'Enter left screen height (cm):'};

@@ -33,9 +33,9 @@ proj_p_image = fileparts( which(mfilename) );
 proj_p = 'D:\tempData';
 
 bypass_trial_data = false ;    
-save_data = true;
+save_data = false;
 full_screens = true;
-max_num_trials = 100;
+max_num_trials = 50;
 
 draw_m2_eye_roi = false;
 draw_m1_gaze = false;
@@ -52,13 +52,13 @@ timing = struct();
 %%% stages of the task
 % 1 fixation with block rule
 enbale_fixation_with_block_rule = true;
-timing.initial_fixation_duration_m1 = 0.2;
-timing.initial_fixation_duration_m2 = 0.2;
-timing.initial_fixation_state_duration = 1.5;
+timing.initial_fixation_duration_m1 = 0.1;
+timing.initial_fixation_duration_m2 = 0.3;
+timing.initial_fixation_state_duration = 2;
 
 timing.initial_reward_m1 = 0.1;
-timing.initial_reward_m2 = 0.1;
-timing.init_reward_m1_m2 = 0.0;
+timing.initial_reward_m2 = 0.0;
+timing.init_reward_m1_m2 = 0.3;
 
 % 2 spatial rule
 if always_draw_spatial_rule_outline
@@ -69,7 +69,7 @@ end
 timing.spatial_rule_fixation_duration = 0.15;
 timing.spatial_rule_state_duration = 0.5;
 timing.spatial_rule_reward_m1 = 0.1;
-timing.spatial_rule_reward_m2 = 0.00;
+timing.spatial_rule_reward_m2 = 0.1;
 timing.spatial_rule_reward_m1_m2 = 0.4;
 
 
@@ -87,7 +87,7 @@ enable_spatial_cue = true;
 timing.spatial_cue_state_duration = 1.5;
 timing.spatial_cue_state_chooser_duration = 0.5;
 timing.spatial_cue_reward_m1 = 0.0;
-timing.spatial_cue_reward_m2 = 0.0;
+timing.spatial_cue_reward_m2 = 1;
 timing.spatial_cue_reward_m1_m2 = 0.0;
 
 
@@ -102,11 +102,16 @@ timing.fixation_delay_reward_m1_m2 = 0.4;
 
 % 6 actor response
 enable_actor_response = true;
-timing.actor_response_state_duration = 3;
-timing.actor_response_state_chooser_duration = 0.2;
-timing.actor_response_state_signaler_duration = 0.2;
-timing.actor_response_reward_m1 = 0.8;
-timing.actor_response_reward_m2 = 0.8;
+timing.actor_response_state_duration = 4;
+timing.actor_response_state_chooser_duration = 0.1;
+
+timing.actor_response_state_chooser_duration_left = 0.1;
+timing.actor_response_state_chooser_duration_right = 0.8;
+
+
+timing.actor_response_state_signaler_duration = 0.0;
+timing.actor_response_reward_m1 = 1.05;
+timing.actor_response_reward_m2 = 0.0;
 
 % 7 feedback & reward
 enable_response_feedback = true;
@@ -129,16 +134,16 @@ name_of_m2 ='M2_hitch';% 'Hitch';
 %{
   stimuli parameters
 %}
-fix_cross_size = 150; % px
-fix_target_size = 150; % px
-fix_circular_size = 180;
-error_square_size = 150;
+fix_cross_size = 120; % px
+fix_target_size = 120; % px
+fix_circular_size = 120;
+error_square_size = 120;
 lr_eccen = 0; % px amount to shift left and right targets towards screen edges
 
 % add +/- target_padding
-target_padding = 120;
-cross_padding = 120;
-circular_padding = 120;
+target_padding = 100;
+cross_padding = 100;
+circular_padding = 100;
 
 % sptial rule width
 spatial_rule_width = 10;
@@ -172,7 +177,7 @@ end
 %{
   remap target and stimuli
 %}
-screen_height = 7.4;% cm
+screen_height = 7.5;% cm
 monitor_height = 27.3;% cm
 if enable_remap
 %   prompt = {'Enter left screen height (cm):'};
@@ -347,16 +352,17 @@ while ( ~ptb.util.is_esc_down() && ...
     end
   
 %     if ( (~acquired_m1) || (~acquired_m2))
-    if ((~acquired_m2)) & ( (~acquired_m1))
+    if ((~acquired_m2))
       % error
       error_timeout_state( timing.error_duration,1,1, ~acquired_m1, ~acquired_m2);
       continue
     end
   
+%     if acquired_m1 & acquired_m2
     if acquired_m1 & acquired_m2
       ['both initial success']
-      WaitSecs( max(timing.initial_reward_m1, timing.initial_reward_m2) + timing.waitSecs);
-      %deliver_reward( task_interface, 0:1, timing.init_reward_m1_m2);
+%       WaitSecs( max(timing.initial_reward_m1, timing.initial_reward_m2) + timing.waitSecs);
+%       deliver_reward( task_interface, 0:1, timing.init_reward_m1_m2);
       deliver_reward( task_interface, 0, timing.init_reward_m1_m2);
     end
   end
@@ -484,7 +490,8 @@ while ( ~ptb.util.is_esc_down() && ...
   %}
     
   actor_resp_choice = [];
-  if ( enable_actor_response )
+%   if ( enable_actor_response &  acquired_m1)
+  if ( enable_actor_response)
     [trial_rec.actor_response, actor_resp_choice] = state_actor_response( is_gaze_trial );
     fprintf( '\n\n Actor chose: %d\n\n', actor_resp_choice );
   end
@@ -809,8 +816,12 @@ function [res, actor_resp_choice] = state_actor_response(is_gaze_trial)
 
   fixator_win = win_m2;
   fixator_pos = @get_m2_position;
+  if swap_signaler_dir
+    chooser_choice_time = timing.actor_response_state_chooser_duration_right;
+  else
+    chooser_choice_time = timing.actor_response_state_chooser_duration_left;
+  end
 
-  chooser_choice_time = timing.actor_response_state_chooser_duration;
   state_time = timing.actor_response_state_duration;
 
   loc_draw_cb = wrap_draw({@draw_response, @maybe_draw_gaze_cursors},1,1);  
@@ -843,7 +854,7 @@ function [res, actor_resp_choice] = state_actor_response(is_gaze_trial)
 
     fill_oval( chooser_win, [255, 255, 255], actor_rects{1} );
     fill_oval( chooser_win, [255, 255, 255], actor_rects{2} );
-    draw_texture( fixator_win, cross_im, m2_centered_rect_screen(fix_cross_size) );
+%     draw_texture( fixator_win, cross_im, m2_centered_rect_screen(fix_cross_size) );
   end
 end
 

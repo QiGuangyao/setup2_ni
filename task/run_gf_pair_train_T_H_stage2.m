@@ -58,7 +58,7 @@ timing.initial_fixation_state_duration = 1.5;
 
 timing.initial_reward_m1 = 0.1;
 timing.initial_reward_m2 = 0.1;
-timing.init_reward_m1_m2 = 0.2;
+timing.init_reward_m1_m2 = 0;
 
 % 2 spatial rule
 if always_draw_spatial_rule_outline
@@ -87,7 +87,7 @@ enable_spatial_cue = true;
 timing.spatial_cue_state_duration = 1.2;
 timing.spatial_cue_state_chooser_duration = 0.5;
 timing.spatial_cue_reward_m1 = 0.0;
-timing.spatial_cue_reward_m2 = 0.0;
+timing.spatial_cue_reward_m2 = 0.4;
 timing.spatial_cue_reward_m1_m2 = 0.0;
 
 
@@ -102,11 +102,11 @@ timing.fixation_delay_reward_m1_m2 = 0.0;
 
 % 6 actor response
 enable_actor_response = true;
-timing.actor_response_state_duration =2;
+timing.actor_response_state_duration =3;
 timing.actor_response_state_chooser_duration = 0.1;
-timing.actor_response_state_signaler_duration = 0.2;
-timing.actor_response_reward_m1 = 1;
-timing.actor_response_reward_m2 = 1;
+timing.actor_response_state_signaler_duration = 0.0;
+timing.actor_response_reward_m1 = 0.6;
+timing.actor_response_reward_m2 = 0;
 
 % 7 feedback & reward
 enable_response_feedback = true;
@@ -346,8 +346,8 @@ while ( ~ptb.util.is_esc_down() && ...
       ['m2 intial success']
     end
   
-    if ( (~acquired_m1) || (~acquired_m2))
-%     if ((~acquired_m2))
+%     if ( (~acquired_m1) || (~acquired_m2))
+    if ((~acquired_m2))
       % error
       error_timeout_state( timing.error_duration,1,1, ~acquired_m1, ~acquired_m2);
       continue
@@ -484,7 +484,7 @@ while ( ~ptb.util.is_esc_down() && ...
   %}
     
   actor_resp_choice = [];
-  if ( enable_actor_response )
+  if ( enable_actor_response &(acquired_m1) )
     [trial_rec.actor_response, actor_resp_choice] = state_actor_response( is_gaze_trial );
     fprintf( '\n\n Actor chose: %d\n\n', actor_resp_choice );
   end
@@ -843,7 +843,8 @@ function [res, actor_resp_choice] = state_actor_response(is_gaze_trial)
 
     fill_oval( chooser_win, [255, 255, 255], actor_rects{1} );
     fill_oval( chooser_win, [255, 255, 255], actor_rects{2} );
-    draw_texture( fixator_win, cross_im, m2_centered_rect_screen(fix_cross_size) );
+
+%     draw_texture( fixator_win, cross_im, m2_centered_rect_screen(fix_cross_size) );
   end
 end
 
