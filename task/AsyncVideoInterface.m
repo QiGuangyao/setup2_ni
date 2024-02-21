@@ -94,7 +94,7 @@ classdef AsyncVideoInterface < handle
         try
           res = fetchOutputs( obj.par_future );
         catch err
-          warning( err.message );
+          fprintf( '\n Err: %s', err.message );
         end
         delete( obj.par_future );
         obj.par_future = [];
