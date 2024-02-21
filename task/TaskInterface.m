@@ -10,10 +10,13 @@ classdef TaskInterface < handle
 
     windows = {};
 
-    put_m1_gaze_in_center = false;%true;%false
-    put_m2_gaze_in_center = false;
+    put_m1_gaze_in_center = true;%true;%false
+    put_m2_gaze_in_center = true;
 
-    bypass_video = false;
+    m1_gaze_override_stack = [];
+    m2_gaze_override_stack = [];
+
+    bypass_video = true;
     bypass_ni = false;
     bypass_npxi_events = false;
     bypass_laser = true;
@@ -43,7 +46,28 @@ classdef TaskInterface < handle
         AsyncVideoInterface.VIDEO_ERROR_FILE_PREFIX );
     end
 
+    function push_m1_gaze_position_override(obj, m1_pos)
+      obj.m1_gaze_override_stack(end+1, 1:2) = m1_pos(:)';
+    end
+
+    function pop_m1_gaze_position_override(obj)
+      obj.m1_gaze_override_stack(end, :) = [];
+    end
+
+    function push_m2_gaze_position_override(obj, m2_pos)
+      obj.m2_gaze_override_stack(end+1, 1:2) = m2_pos(:)';
+    end
+
+    function pop_m2_gaze_position_override(obj)
+      obj.m2_gaze_override_stack(end, :) = [];
+    end
+
     function m1_xy = get_m1_position(obj, win_m1, enable_remap,center_remap_m1)
+      if ( ~isempty(obj.m1_gaze_override_stack) )
+        m1_xy = obj.m1_gaze_override_stack(end, :);
+        return
+      end
+
       if ( obj.put_m1_gaze_in_center )
         m1_xy = win_m1.Center;
         if enable_remap
@@ -56,6 +80,11 @@ classdef TaskInterface < handle
     end
 
     function m2_xy = get_m2_position(obj, win_m2,enable_remap,center_remap_m2)
+      if ( ~isempty(obj.m2_gaze_override_stack) )
+        m2_xy = obj.m2_gaze_override_stack(end, :);
+        return
+      end
+      
       if ( obj.put_m2_gaze_in_center )
         m2_xy = win_m2.Center;
         if enable_remap
