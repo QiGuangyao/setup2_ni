@@ -18,9 +18,10 @@ classdef TaskInterface < handle
 
     bypass_video = false;
     bypass_ni = false;
-    bypass_npxi_events = false;
+    bypass_npxi_events = true;
     bypass_laser = true;
     bypass_reward = false;
+    use_setup3_reward = true;
 
     laser_port = 'COM4';
 
@@ -28,6 +29,7 @@ classdef TaskInterface < handle
     video_interface;
     ni_interface;
     gaze_tracker;
+    setup3_reward_interface;
     npxi_events;
     laser_interface;
     task_data;
@@ -38,6 +40,7 @@ classdef TaskInterface < handle
       obj.t0 = t0;
       obj.data_p = save_p;
       obj.windows = windows;
+      obj.setup3_reward_interface = Setup3RewardInterface( ~obj.use_setup3_reward );
     end
 
     function tf = proceed(obj)
@@ -97,7 +100,11 @@ classdef TaskInterface < handle
 
     function deliver_reward(obj, chans, duration_s)
       if ( ~obj.bypass_reward )
-        reward_trigger( obj.ni_interface, chans, duration_s );
+        if ( obj.use_setup3_reward )
+          trigger( obj.setup3_reward_interface, chans, duration_s );
+        else
+          reward_trigger( obj.ni_interface, chans, duration_s );
+        end
       end
     end
 
@@ -121,6 +128,11 @@ classdef TaskInterface < handle
       %
       obj.ni_interface = NIInterface( obj.bypass_ni );
       initialize( obj.ni_interface, fullfile(obj.data_p, 'ni.bin') );
+
+      %
+      %
+      % setup3 reward interface
+      initialize( obj.setup3_reward_interface );
 
       % gaze tracker
       %
@@ -147,6 +159,7 @@ classdef TaskInterface < handle
     function update(obj)
       res = tick( obj.ni_interface );
       update( obj.gaze_tracker, res );
+      update( obj.setup3_reward_interface );
       
       if ( ~obj.logged_video_error )
         % check whether an error has occurred in video acquisition
@@ -166,6 +179,7 @@ classdef TaskInterface < handle
       ParallelErrorChecker.set_error( TaskInterface.TASK_ABORTED_FILE_PREFIX, 'aborted' );
 
       delete( obj.ni_interface );
+      delete( obj.setup3_reward_interface );
       % @NOTE: Task data should be deleted after NI shuts down, but before
       % video interface is deleted (bc the video data may be needed
       % as part of the task data shutdown procedure).

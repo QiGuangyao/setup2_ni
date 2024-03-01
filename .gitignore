@@ -1,6 +1,7 @@
 *.DS_Store
 .idea/
 .vs/
+*.m~
 cmake-build-debug/
 cmake-build-release/
 *.asv
