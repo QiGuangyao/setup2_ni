@@ -10,13 +10,13 @@ classdef TaskInterface < handle
 
     windows = {};
 
-    put_m1_gaze_in_center = true;%true;%false
-    put_m2_gaze_in_center = true;
+    put_m1_gaze_in_center = false;%true;%false
+    put_m2_gaze_in_center = false;
 
     m1_gaze_override_stack = [];
     m2_gaze_override_stack = [];
 
-    bypass_video = true;
+    bypass_video = false;
     bypass_ni = false;
     bypass_npxi_events = false;
     bypass_laser = true;
