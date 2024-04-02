@@ -827,6 +827,104 @@ function [actor_success, signaler_fixated,fix_state_actor,fix_state_signaler] = 
   end
 end
 
+function res = state_gaze_triggered_actor_choice()
+  %{
+  - m2's targets appear, can make any number of saccades back and forth
+  - m1 looks to m2's eyes to trigger m1's targets appearing, after which 
+    they  can make the choice
+  %}
+  
+  start_t = time_cb();
+  
+  state_duration = 2; % @TODO
+  choice_time_m1 = 0.1; % @TODO
+  choice_time_m2 = 0.1; % @TODO
+  
+  is_m2_timeout = false;
+  m2_timer = nan;
+  m2_timeout_duration = 0.2;  % @TODO
+  
+  m1_looked = false;
+    
+  choice_m1 = ChoiceTracker( start_t, 2 );
+  choice_m2 = ChoiceTracker( start_t, 2 );
+  
+  while ( time_cb() - start_t < state_duration )
+    local_update();
+    do_draw();
+    
+    m1_xy = get_m1_position();
+    m2_xy = get_m2_position();
+    
+    curr_t = time_cb();
+    
+    % m2
+    if ( is_m2_timeout )
+      if ( toc(m2_timer) > m2_timeout_duration )
+        is_m2_timeout = false;
+      end
+    else
+      m2_chose = update( ...
+        choice_m2, m2_xy(1), m2_xy(2), curr_t, choice_time_m2, m2_rects() );
+      
+      if ( m2_chose )
+        is_m2_timeout = true;
+        m2_timer = tic();
+      end
+    end
+    
+    % m1
+    if ( ~m1_looked )
+      if ( rect_in_bounds(m2_eye_roi, m1_xy(1), m1_xy(2)) )
+        m1_looked = true;
+      end
+    else
+      m1_chose = update( ...
+        choice_m1, m1_xy(1), m1_xy(2), curr_t, choice_time_m1, m1_rects() );
+      
+      if ( m1_chose )
+        break
+      end
+    end
+  end
+  
+  res = struct();
+  res.choice_m1 = choice_m1;
+  res.choice_m2 = choice_m2;
+  
+  % -----
+  
+  function do_draw()
+    if ( ~is_m2_timeout )
+      signaler_rects = m2_rects();
+
+      if ( swap_signaler_dir )
+        signaler_rects = fliplr( signaler_rects );
+      end
+
+      draw_texture( win_m2, targ1_im_m2, signaler_rects{1} );
+      draw_texture( win_m2, targ2_im_m2, signaler_rects{2} );
+    end
+    
+    if ( m1_looked )
+      actor_rects = m1_rects();
+      fill_oval( win_m1, [255, 255, 255], actor_rects{1} );
+      fill_oval( win_m1, [255, 255, 255], actor_rects{2} );
+    end
+    
+    flip( win_m1, false );
+    flip( win_m2, false );
+  end
+  
+  function r = m2_rects()
+    r = lr_rects( get(win_m2.Rect), [fix_circular_size, fix_circular_size] );
+  end
+  
+  function r = m1_rects()
+    r = lr_rects( get(win_m1.Rect), [fix_circular_size, fix_circular_size] );
+  end
+end
+
 function [res, signaler_choice] = state_spatial_cue(swap_signaler_dir, laser_index, is_gaze_trial)
   send_message( task_interface.npxi_events, 'spatial_cue/enter' );
 
@@ -1274,6 +1372,10 @@ end
 
 function r = invalid_rect()
   r = nan( 1, 4 );
+end
+
+function tf = rect_in_bounds(r, x, y)
+  tf = x >= r(1) && x <= r(3) && y >= r(2) && y <= r(4);
 end
 
 function [sizex,sizey] = visangle2stimsize(visanglex,visangley,totdist,screenwidth,screenres)
