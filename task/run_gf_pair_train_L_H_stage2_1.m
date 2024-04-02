@@ -35,7 +35,7 @@ proj_p = 'D:\tempData';
 bypass_trial_data = false ;    
 save_data = true;
 full_screens = true;
-max_num_trials = 50;
+max_num_trials = 100;
 
 draw_m2_eye_roi = false;
 draw_m1_gaze = false;
@@ -52,13 +52,13 @@ timing = struct();
 %%% stages of the task
 % 1 fixation with block rule
 enbale_fixation_with_block_rule = true;
-timing.initial_fixation_duration_m1 = 0.2;
+timing.initial_fixation_duration_m1 = 0.1;
 timing.initial_fixation_duration_m2 = 0.1;
 timing.initial_fixation_state_duration = 1.5;
 
-timing.initial_reward_m1 = 0.25;
-timing.initial_reward_m2 = 0.35;
-timing.init_reward_m1_m2 = 0.45;
+timing.initial_reward_m1 = 0.3;
+timing.initial_reward_m2 = 0.3;
+timing.init_reward_m1_m2 = 0.5;
 
 % 2 spatial rule
 if always_draw_spatial_rule_outline
@@ -69,15 +69,15 @@ end
 timing.spatial_rule_fixation_duration = 0.15;
 timing.spatial_rule_state_duration = 0.5;
 timing.spatial_rule_reward_m1 = 0.1;
-timing.spatial_rule_reward_m2 = 0.1;
+timing.spatial_rule_reward_m2 = 0.2;
 timing.spatial_rule_reward_m1_m2 = 0.1;
 
 
 % 3 gaze_delay
 enable_gaze_triggered_delay = true;
-timing.gaze_triggered_delay = 0.8;
-timing.gaze_delay_reward_m1 = 0.7;
-timing.gaze_delay_reward_m2 = 0.7;
+timing.gaze_triggered_delay = 1;
+timing.gaze_delay_reward_m1 = 1;
+timing.gaze_delay_reward_m2 = 0;
 timing.gaze_delay_reward_m1_m2 = 0.0;
 timing.gaze_delay_fixation_time = 0.0;
 
@@ -142,7 +142,7 @@ name_of_m2 ='M2_hitch';% 'Hitch';
 fix_cross_visu_angl = 6;%deg
 visanglex = fix_cross_visu_angl;
 visangley = fix_cross_visu_angl;
-totdist_m1 = 480;%mm
+totdist_m1 = 490;%mm
 totdist_m2 = 520;%mm
 
 screenwidth = 338.66666667;%mm
@@ -221,9 +221,6 @@ end
 
 screen_height_left = 8;% cm after monitor down 
 monitor_height = 27.093333333;% cm
-
-% m1_to_monitor =48.0;%cm
-% m2_to_monitor = 52.0;%cm
 
 moitor_screen_edge_to_table = 2.2;%cm
 
@@ -424,7 +421,9 @@ while ( ~ptb.util.is_esc_down() && ...
     if ( (~acquired_m1) || (~acquired_m2))
 %     if ((~acquired_m2))
       % error
+      tic
       error_timeout_state( timing.error_duration,1,1, ~acquired_m1, ~acquired_m2);
+      toc
       continue
     end
     if (~acquired_m1)
@@ -594,8 +593,10 @@ while ( ~ptb.util.is_esc_down() && ...
   %{
     iti
   %}
-
+  'iti: '
+  tic
   state_iti();
+  toc
 end
 
 catch err
@@ -728,8 +729,8 @@ function [actor_success, signaler_fixated,fix_state] = state_gaze_triggered_dela
   actor_success = false;
   signaler_fixated = true;
   loc_draw_cb = wrap_draw({@draw, @maybe_draw_gaze_cursors},1,1);
-  signaler_rect = rect_pad(...
-      centered_rect(center_remap_m2, [fix_cross_size_m2, fix_cross_size_m2]), cross_padding_m2);
+%   signaler_rect = rect_pad(...
+%       centered_rect(center_remap_m2, [fix_cross_size_m2, fix_cross_size_m2]), cross_padding_m2);
   signaler_win = win_m2;
   actor_win = win_m1;
   t0 = tic();
@@ -742,11 +743,11 @@ function [actor_success, signaler_fixated,fix_state] = state_gaze_triggered_dela
     actor_pos = get_m1_position();
     signal_pos = get_m2_position();
 
-    if ~( signal_pos(1) >= signaler_rect(1) && signal_pos(1) <= signaler_rect(3) && ...
-          signal_pos(2) >= signaler_rect(2) && signal_pos(2) <= signaler_rect(4) )
-      % not within fix bounds
-      signaler_fixated = false;
-    end
+%     if ~( signal_pos(1) >= signaler_rect(1) && signal_pos(1) <= signaler_rect(3) && ...
+%           signal_pos(2) >= signaler_rect(2) && signal_pos(2) <= signaler_rect(4) )
+%       % not within fix bounds
+%       signaler_fixated = false;
+%     end
 
     update( fix_state, actor_pos(1), actor_pos(2), toc(t0), fix_time, trigger_roi );
     if ( fix_state.ever_acquired )
@@ -772,7 +773,7 @@ function [actor_success, signaler_fixated,fix_state] = state_gaze_triggered_dela
       draw_spatial_rule_outline( actor_win, is_gaze_trial );
     end
 
-    draw_texture( signaler_win, cross_im, m1_centered_rect_screen(fix_cross_size_m2) );
+%     draw_texture( signaler_win, cross_im, m1_centered_rect_screen(fix_cross_size_m2) );
     if ( draw_m2_eye_roi )
       fill_rect( actor_win, [255, 255, 255], trigger_roi );
     end

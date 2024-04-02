@@ -1,6 +1,6 @@
 classdef AsyncVideoInterface < handle
   properties (Constant = true)
-    INITIAL_TIMEOUT = 60;
+    INITIAL_TIMEOUT = 50000;
     VIDEO_ERROR_FILE_PREFIX = 'video_error';
   end
 
