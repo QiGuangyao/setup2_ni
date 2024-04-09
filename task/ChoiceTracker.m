@@ -17,6 +17,16 @@ classdef ChoiceTracker < handle
         reset_acquired( obj.StateTrackers{i} );
       end
     end
+
+    function tf = any_entered(obj)
+      tf = false;
+      for i = 1:numel(obj.StateTrackers)
+        if ( ~isempty(obj.StateTrackers{i}.entered_ts) )
+          tf = true;
+          return
+        end
+      end
+    end
     
     function [did_choose, choice_index] = update(obj, x, y, t, choice_time, rects)
       did_choose = false;
