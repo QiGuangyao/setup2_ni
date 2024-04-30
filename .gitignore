@@ -9,3 +9,4 @@ out/
 build/
 data/
 *.bin
+*.zip

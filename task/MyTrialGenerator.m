@@ -7,14 +7,15 @@ classdef MyTrialGenerator < handle
     % the signaler's perspective) that the correct target shows on.
     signaler_target_dirs = [];
     trial_index = 1;
+    % laser_index [0,1]: 0 is right, 1 is left
   end
   methods
     function obj = MyTrialGenerator(nt)
       obj.trial_types = randi( 2, nt, 1 ) - 1;
       obj.signaler_target_dirs = randi( 2, nt, 1 ) - 1;
 %       % shuffle
-%       temp_trial = [zeros( nt/2, 1 );ones( nt/2, 1 )];
-%       obj.signaler_target_dirs = temp_trial(randperm(length(temp_trial)));
+      temp_trial = [zeros( nt/2, 1 );ones( nt/2, 1 )];
+      obj.signaler_target_dirs = temp_trial(randperm(length(temp_trial)));
 
 %       obj.signaler_target_dirs = [randi( 2, nt/10, 1 ) - 1; zeros( nt-nt/10, 1 )];
 %       obj.signaler_target_dirs = obj.signaler_target_dirs(randperm(length(obj.signaler_target_dirs)));
@@ -29,7 +30,8 @@ classdef MyTrialGenerator < handle
 
     function td = next(obj)
       td = struct();
-      td.is_gaze_trial = obj.trial_types(obj.trial_index) == 1;
+%       td.is_gaze_trial = obj.trial_types(obj.trial_index) == 1;
+      td.is_gaze_trial = true;% for gaze follwing trial
       td.signaler_target_dir = obj.signaler_target_dirs(obj.trial_index);
       td.laser_index = double( rand() > 0.5 );
       td.prob_gaze_triggered_delay = 1;
