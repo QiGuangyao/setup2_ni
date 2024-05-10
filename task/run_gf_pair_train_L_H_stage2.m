@@ -1,6 +1,6 @@
 function run_gf_pair_train_L_H_stage2()
 
-cd 'C:\Users\setup2\source\setup2_ni\deps\network-events\Resources\Matlab';
+cd 'C:\Users\chang\source\setup2_ni\deps\network-events\Resources\Matlab';
 
 m2_eye_roi = [];
 

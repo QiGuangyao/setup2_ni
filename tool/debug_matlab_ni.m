@@ -27,14 +27,14 @@ ni_mex( uint32(3) );
 
 %%
 
-dst_p = 'C:\Users\setup2\source\setup2_ni\data\test2.dat';
+dst_p = 'C:\Users\chang\source\setup2_ni\data\test2.dat';
 
 interface = NIInterface();
 initialize( interface, dst_p );
 
 t0 = tic;
 pulse_t0 = tic;
-while ( toc(t0) < 5 )
+while ( toc(t0) < 60 && ~ptb.util.is_esc_down )
   res = tick( interface );
 
   if ( 1 )
