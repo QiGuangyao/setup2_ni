@@ -1,6 +1,6 @@
 function run_gf_pair_train_L_E_stage2_3()
 
-cd 'C:\Users\setup2\source\setup2_ni\deps\network-events\Resources\Matlab';
+% cd 'C:\Users\setup3\source\setup2_ni\deps\network-events\Resources\Matlab';
 
 m2_eye_roi = [];
 
@@ -44,12 +44,18 @@ full_screens = true;
 max_num_trials = 100;
 rng("shuffle")
 draw_m2_eye_roi = false;
-draw_m1_gaze = false;
-draw_m2_gaze = false;
+draw_m1_gaze = true;
+draw_m2_gaze = true;
 draw_m2_eye_cue = false;
 always_draw_spatial_rule_outline = true;
 enable_remap = true;
 verbose = false;
+% setup3
+win_index_m1 = 3;
+win_index_m2 = 2;
+% % setup2
+% win_index_m1 = 1;
+% win_index_m2 = 2;
 
 %{
   timing parameters
@@ -255,8 +261,8 @@ end
 
 % open windows before ni
 if ( full_screens )
-  win_m1 = open_window( 'screen_index', 1, 'screen_rect', [] );% 4 for M1 
-  win_m2 = open_window( 'screen_index', 2, 'screen_rect', [] );% 1 for M2
+  win_m1 = open_window( 'screen_index', win_index_m1, 'screen_rect', [] );% 4 for M1 
+  win_m2 = open_window( 'screen_index', win_index_m2, 'screen_rect', [] );% 1 for M2
 else
   win_m1 = open_window( 'screen_index', 4, 'screen_rect', [0, 0, 400, 400] );
   win_m2 = open_window( 'screen_index', 4, 'screen_rect', [400, 0, 800, 400] );
@@ -1075,12 +1081,29 @@ end
       if ( any_entered(choice_m2) )
         m2_ever_entered = true;
       end
+
+      % @NOTE: Index of *incorrect* choice, so opposite logic of below
+      incorr_index = 2;
+      if ( swap_signaler_dir )
+        incorr_index = 1;
+      end
+
+      if ( ~isempty(choice_m2.StateTrackers{incorr_index}.entered_ts) )
+        % if m2 enters into incorrect target, break
+        break
+      end
       
       if ( m2_chose )
         is_m2_timeout = true;
         m2_timer = tic();
         m2_ever_chose = true;
         was_m2_correct = (m2_choice==2 & swap_signaler_dir) | (m2_choice==1 & ~swap_signaler_dir);
+
+        if ( ~was_m2_correct )
+          % if m2 makes wrong choice, break. is irrelevant if breaking upon
+          % entry above.
+          break
+        end
 
         if ( ~triggered_m2_reward && was_m2_correct )
           deliver_reward( task_interface, 1, reward_m2 );
