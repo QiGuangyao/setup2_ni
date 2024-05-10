@@ -12,6 +12,9 @@ classdef MyTrialGenerator < handle
     function obj = MyTrialGenerator(nt)
       obj.trial_types = randi( 2, nt, 1 ) - 1;
       obj.signaler_target_dirs = randi( 2, nt, 1 ) - 1;
+%       % shuffle
+%       temp_trial = [zeros( nt/2, 1 );ones( nt/2, 1 )];
+%       obj.signaler_target_dirs = temp_trial(randperm(length(temp_trial)));
 
 %       obj.signaler_target_dirs = [randi( 2, nt/10, 1 ) - 1; zeros( nt-nt/10, 1 )];
 %       obj.signaler_target_dirs = obj.signaler_target_dirs(randperm(length(obj.signaler_target_dirs)));
@@ -21,6 +24,7 @@ classdef MyTrialGenerator < handle
 
       % always right
 %       obj.signaler_target_dirs = ones( nt, 1 );
+% 
     end
 
     function td = next(obj)

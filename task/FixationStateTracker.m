@@ -23,6 +23,11 @@ classdef FixationStateTracker < handle
       obj.every_acquire_callback = params.every_acquire_callback;
     end
     
+    function reset_acquired(obj)
+      obj.ib = false;
+      obj.acquired = false;
+    end
+    
     function [did_break, info] = update(obj, x, y, t, fix_time, targ_rect)
       did_break = false;
       
@@ -37,7 +42,7 @@ classdef FixationStateTracker < handle
            obj.ib = true;
          else
            info.ib_t = t - obj.entered_ts(end);
-           info.entry_t = obj.entered_ts(end);
+           info.ib_entry_t = obj.entered_ts(end);
          end
          if ( ~obj.acquired && t - obj.entered_ts(end) >= fix_time )
            %  successful acquistiion

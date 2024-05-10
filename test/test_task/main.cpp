@@ -26,7 +26,7 @@ int main(int, char**) {
            samp.sync, samp.pupil1, samp.x1, samp.y1, samp.pupil2, samp.x2, samp.y2);
 #endif
 
-#if 1
+#if 0
     if (time::Duration(time::now() - pulse_t0).count() > 2.0) {
 #if 1
       for (int i = 0; i < 2; i++) {

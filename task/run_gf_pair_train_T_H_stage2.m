@@ -9,11 +9,15 @@ try
 [m1_calib, m2_calib] = get_latest_far_plane_calibrations( dsp3.datedir );
 
 % eye roi target width and height padding
-m2_eye_roi_padding_x = 0;
-m2_eye_roi_padding_y = 100;
-m2_eye_roi = get_eye_roi_from_calibration_file( ...
-  m1_calib, m2_eye_roi_padding_x, m2_eye_roi_padding_y );
-m2_eye_roi = get_face_roi_from_calibration_file( m1_calib, 0, 0 );
+useEyeROI = true;
+m2_eye_roi_padding_x = 50;
+m2_eye_roi_padding_y = 60;
+if useEyeROI
+  m2_eye_roi = get_eye_roi_from_calibration_file( ...
+    m1_calib, m2_eye_roi_padding_x, m2_eye_roi_padding_y );
+else
+  m2_eye_roi = get_face_roi_from_calibration_file( m1_calib, 0, 0 );
+end
 fprintf( 'm2 eye roi: %d %d %d %d', m2_eye_roi );
 % m2_face_roi = get_face_roi_from_calibration_file( m1_calib, 0, 0 );
 
@@ -35,7 +39,7 @@ proj_p = 'D:\tempData';
 bypass_trial_data = false ;    
 save_data = true;
 full_screens = true;
-max_num_trials = 100;
+max_num_trials = 50;
 
 draw_m2_eye_roi = false;
 draw_m1_gaze = false;
@@ -52,13 +56,13 @@ timing = struct();
 %%% stages of the task
 % 1 fixation with block rule
 enbale_fixation_with_block_rule = true;
-timing.initial_fixation_duration_m1 = 0.3;
-timing.initial_fixation_duration_m2 = 0.3;
-timing.initial_fixation_state_duration = 1.5;
+timing.initial_fixation_duration_m1 = 0.2;
+timing.initial_fixation_duration_m2 = 0.2;
+timing.initial_fixation_state_duration = 1;
 
-timing.initial_reward_m1 = 0.1;
-timing.initial_reward_m2 = 0.1;
-timing.init_reward_m1_m2 = 0;
+timing.initial_reward_m1 = 0.35;
+timing.initial_reward_m2 = 0.35;
+timing.init_reward_m1_m2 = 1.2;
 
 % 2 spatial rule
 if always_draw_spatial_rule_outline
@@ -69,26 +73,26 @@ end
 timing.spatial_rule_fixation_duration = 0.15;
 timing.spatial_rule_state_duration = 0.5;
 timing.spatial_rule_reward_m1 = 0.1;
-timing.spatial_rule_reward_m2 = 0.00;
-timing.spatial_rule_reward_m1_m2 = 0.2;
+timing.spatial_rule_reward_m2 = 0.1;
+timing.spatial_rule_reward_m1_m2 = 0.1;
 
 
 % 3 gaze_delay
-enable_gaze_triggered_delay = false;
-timing.gaze_triggered_delay = 1;
-timing.gaze_delay_reward_m1 = 0.05;
-timing.gaze_delay_reward_m2 = 0.00;
-timing.gaze_delay_reward_m1_m2 = 0.4;
-timing.gaze_delay_fixation_time = 0.0;
+enable_gaze_triggered_delay = true;
+timing.gaze_triggered_delay = 1.8;
+timing.gaze_delay_reward_m1 = 1.2;
+timing.gaze_delay_reward_m2 = 0.0;
+timing.gaze_delay_reward_m1_m2 = 0.0;
+timing.gaze_delay_fixation_time = 0.02;
 
 
 % 4 spatial cue
-enable_spatial_cue = true;
-timing.spatial_cue_state_duration = 1.2;
-timing.spatial_cue_state_chooser_duration = 0.5;
+enable_spatial_cue = false;
+timing.spatial_cue_state_duration = 1.5;
+timing.spatial_cue_state_chooser_duration = 0.2;
 timing.spatial_cue_reward_m1 = 0.0;
-timing.spatial_cue_reward_m2 = 0.4;
-timing.spatial_cue_reward_m1_m2 = 0.0;
+timing.spatial_cue_reward_m2 = 0.6;
+timing.spatial_cue_reward_m1_m2 = 0.00;
 
 
 % 5 fixation_delay
@@ -101,9 +105,9 @@ timing.fixation_delay_reward_m1_m2 = 0.0;
 
 
 % 6 actor response
-enable_actor_response = true;
-timing.actor_response_state_duration =3;
-timing.actor_response_state_chooser_duration = 0.1;
+enable_actor_response = false;
+timing.actor_response_state_duration =2;%--1.6
+timing.actor_response_state_chooser_duration = 0.2;%--0.30
 timing.actor_response_state_signaler_duration = 0.0;
 timing.actor_response_reward_m1 = 0.6;
 timing.actor_response_reward_m2 = 0;
@@ -116,6 +120,21 @@ timing.feedback_duration = 1;
 timing.waitSecs = 0.05;
 
 
+% gaze delay block
+
+gaze_delay_block = 1;
+if gaze_delay_block
+  enable_gaze_triggered_delay = true;
+  enable_spatial_cue = false;
+  enable_fix_delay = false;
+  enable_actor_response = false;
+else
+  enable_gaze_triggered_delay = false;
+  enable_spatial_cue = true;
+  enable_fix_delay = false;
+  enable_actor_response = true;
+end
+
 % how long m1 and m2 can be overlapping in their target bounds before state
 % exits
 timing.overlap_duration_to_exit = nan;
@@ -125,20 +144,55 @@ name of monkeys
 %}
 name_of_m1 ='M1_tara';% 'lynch';%'M1_simu';
 name_of_m2 ='M2_hitch';% 'Hitch';
+%{
+  stimuli parameters
+%}
 
 %{
   stimuli parameters
 %}
-fix_cross_size = 150; % px
-fix_target_size = 150; % px
-fix_circular_size = 200;
-error_square_size = 150;
+
+fix_cross_visu_angl = 5;%deg
+visanglex = fix_cross_visu_angl;
+visangley = fix_cross_visu_angl;
+totdist_m1 = 490;%mm
+totdist_m2 = 520;%mm
+screen_height_left =7;% cm after monitor down 
+
+screenwidth = 338.66666667;%mm
+screenres = 1280;%mm
+[fix_cross_size_m1,sizey_m1] = visangle2stimsize(visanglex,visangley,totdist_m1,screenwidth,screenres);
+[fix_cross_size_m2,sizey_m2] = visangle2stimsize(visanglex,visangley,totdist_m2,screenwidth,screenres);
+
+% fix_cross_size_m1 = 161.72;%pix
+% fix_cross_size_m2 = 169.97;%pix
+
+fix_circular_size= fix_cross_size_m1;
+error_square_size_m1 = fix_cross_size_m1;
+error_square_size_m2 = fix_cross_size_m2;
+
+
+% fix_target_size = 150; % px
+fix_target_size_m1 = fix_cross_size_m1; % px
+fix_target_size_m2 = fix_cross_size_m2; % p
+% error_square_size = 150;
 lr_eccen = 0; % px amount to shift left and right targets towards screen edges
 
 % add +/- target_padding
-target_padding = 100;
-cross_padding = 100;
-circular_padding = 100;
+padding_angl = 3;
+% padding_angl = 0;
+visanglex = padding_angl;
+visangley = padding_angl;
+[target_padding_m1,sizey_m1] = visangle2stimsize(visanglex,visangley,totdist_m1,screenwidth,screenres);
+[target_padding_m2,sizey_m2] = visangle2stimsize(visanglex,visangley,totdist_m2,screenwidth,screenres);
+% target_padding_m1 = 96.99;
+% target_padding_m2 = 101.94;
+
+
+cross_padding_m1 = target_padding_m1;
+cross_padding_m2 = target_padding_m2;
+
+circular_padding = target_padding_m1;
 
 % sptial rule width
 spatial_rule_width = 10;
@@ -162,8 +216,8 @@ end
 
 % open windows before ni
 if ( full_screens )
-  win_m1 = open_window( 'screen_index', 1, 'screen_rect', [] );% 1 for M1 
-  win_m2 = open_window( 'screen_index', 2, 'screen_rect', [] );% 3 for M2
+  win_m1 = open_window( 'screen_index', 1, 'screen_rect', [] );% 4 for M1 
+  win_m2 = open_window( 'screen_index', 2, 'screen_rect', [] );% 1 for M2
 else
   win_m1 = open_window( 'screen_index', 4, 'screen_rect', [0, 0, 400, 400] );
   win_m2 = open_window( 'screen_index', 4, 'screen_rect', [400, 0, 800, 400] );
@@ -171,19 +225,26 @@ end
 
 %{
   remap target and stimuli
+
+  monitor information
+    Monitor: 1280 x 1024 pixels
+    33.866666667 x 27.093333333 cm
 %}
-screen_height = 7.4;% cm
-monitor_height = 27.3;% cm
+
+
+
+monitor_height = 27.093333333;% cm
+moitor_screen_edge_to_table = 2.2;%cm
 if enable_remap
 %   prompt = {'Enter left screen height (cm):'};
 %   dlg_title = 'Input';
 %   num_lines = 1;
 %   defaultans = {'0'};
 %   screen_height = str2double(cell2mat(inputdlg(prompt,dlg_title,num_lines,defaultans)));
-  y_axis_screen = screen_height/(2*27.3);%0.25;%
-  y_axis_remap = (27.3-(screen_height/2-2.2))/27.3;%x/(2*27.3);%0.25;%
+  y_axis_screen = screen_height_left/(2*monitor_height);%0.25;%
+  y_axis_remap = (monitor_height-(screen_height_left/2-moitor_screen_edge_to_table))/monitor_height;%x/(2*27.3);%0.25;%
   
-  if screen_height == 0
+  if screen_height_left == 0
     y_axis_screen = 0.5;
     y_axis_remap = 0.5;
   end
@@ -191,12 +252,21 @@ if enable_remap
   center_screen_m2 = [0.5*win_m2.Width,y_axis_screen*win_m2.Height];
   center_remap_m1 = [0.5*win_m1.Width,y_axis_remap*win_m1.Height];
   center_remap_m2 = [0.5*win_m2.Width,y_axis_remap*win_m2.Height];
+else
+  center_screen_m1 = win_m1.Center;
+  center_screen_m2 = win_m2.Center;
+  center_remap_m1 = center_screen_m1;
+  center_remap_m2 = center_screen_m2;
 end
 
 % task interface
 t0 = datetime();
 task_interface = TaskInterface( t0, save_p, {win_m1, win_m2} );
 initialize( task_interface );
+
+t0 = datetime();
+trigger( task_interface.sync_interface, 0, t0, tic );
+task_interface.set_t0( t0 );
 
 % trial data
 % trial_generator = DefaultTrialGenerator();
@@ -213,16 +283,25 @@ task_params.center_screen_m1 = center_screen_m1;
 task_params.center_screen_m2 = center_screen_m2;
 task_params.trial_generator = trial_generator;
 task_params.gaze_coord_transform = task_interface.gaze_tracker.gaze_coord_transform;
-task_params.screen_height = screen_height;
+task_params.screen_height = screen_height_left;
 task_params.monitor_height = monitor_height;
+task_params.totdist_m1 = totdist_m1;
+task_params.totdist_m2 = totdist_m2;
 task_params.center_screen_m1 = center_remap_m1;
 task_params.center_screen_m1 = center_remap_m1;
-task_params.fix_cross_size = fix_cross_size;
-task_params.fix_target_size = fix_target_size;
+task_params.fix_cross_visu_angl = fix_cross_visu_angl;
+task_params.fix_cross_size_m1 = fix_cross_size_m1;
+task_params.fix_cross_size_m2 = fix_cross_size_m2;
+task_params.fix_target_size_m1 = fix_target_size_m1;
+task_params.fix_target_size_m2 = fix_target_size_m2;
 task_params.fix_circular_size = fix_circular_size;
-task_params.error_square_size = error_square_size;
-task_params.target_padding = target_padding;
-task_params.cross_padding = cross_padding;
+task_params.error_square_size_m1 = error_square_size_m1;
+task_params.error_square_size_m2 = error_square_size_m2;
+task_params.padding_angl = padding_angl;
+task_params.target_padding_m1 = target_padding_m1;
+task_params.target_padding_m2 = target_padding_m2;
+task_params.cross_padding_m1 = cross_padding_m1;
+task_params.cross_padding_m2 = cross_padding_m2;
 task_params.circular_padding = circular_padding;
 task_params.trial_number = trial_number;
 task_params.spatial_rule_width = spatial_rule_width;
@@ -245,6 +324,13 @@ task_params.enable_remap = enable_remap;
 task_params.verbose = verbose;
 task_params.m1 = name_of_m1;
 task_params.m2 = name_of_m2;
+task_params.m2_eye_roi = m2_eye_roi;
+task_params.gaze_delay_block = gaze_delay_block;
+task_params.m2_eye_roi_padding_x = m2_eye_roi_padding_x;
+task_params.m2_eye_roi_padding_y = m2_eye_roi_padding_y;
+task_params.useEyeROI = useEyeROI;
+task_params.screenres = screenres;
+task_params.screenwidth = screenwidth;
 
 if ( bypass_trial_data )
   trial_data = [];
@@ -255,6 +341,7 @@ else
     , task_interface.matlab_time ...
     , task_params ...
   );
+  trial_data.sync_interface = task_interface.sync_interface;
 end
 
 % @NOTE: register trial data with task interface
@@ -289,7 +376,7 @@ try
 trial_inde = 0;
 m1_correct = 0;
 m2_correct = 0;
-
+m1_correct_gaze = 0;
 while ( ~ptb.util.is_esc_down() && ...
       proceed(task_interface) && ...
       (isempty(trial_data) || num_entries(trial_data) < max_num_trials) )
@@ -308,6 +395,9 @@ while ( ~ptb.util.is_esc_down() && ...
 
   trial_rec.trial_descriptor = trial_desc;
   trial_rec.gaze_triggered_delay = struct();
+  trial_rec.trial_start = struct();
+  trial_rec.trial_start.time = time_cb();
+  default_trigger( task_interface.sync_interface, 0 );
 
   %{
     debug gaze-triggered delay
@@ -330,10 +420,9 @@ while ( ~ptb.util.is_esc_down() && ...
   %}
   
   if enbale_fixation_with_block_rule
-
-
     [trial_rec.fixation_with_block_rule, acquired_m1,acquired_m2] = state_fixation_with_block_rule();
-    ['m1:';'m2:']
+
+    ['m1 initial:';'m2 initial:']
     m1_correct = m1_correct+acquired_m1;
     m2_correct = m2_correct+acquired_m2;
     m1_correct/trial_inde,m2_correct/trial_inde
@@ -347,16 +436,22 @@ while ( ~ptb.util.is_esc_down() && ...
     end
   
 %     if ( (~acquired_m1) || (~acquired_m2))
-    if ((~acquired_m2))
-      % error
-      error_timeout_state( timing.error_duration,1,1, ~acquired_m1, ~acquired_m2);
-      continue
-    end
+% %     if ((~acquired_m2))
+%       % error
+% %       tic
+%       error_timeout_state( timing.error_duration,1,1, ~acquired_m1, ~acquired_m2);
+% %       toc
+% %       continue
+%     end
+%     if (~acquired_m1)
+%       error_timeout_state( timing.error_duration,1,1, ~acquired_m1, ~acquired_m2);
+%     end
+
   
     if acquired_m1 & acquired_m2
       ['both initial success']
-%       WaitSecs( max(timing.initial_reward_m1, timing.initial_reward_m2) + timing.waitSecs);
-      deliver_reward( task_interface, 0:1, timing.init_reward_m1_m2);
+      WaitSecs( max(timing.initial_reward_m1, timing.initial_reward_m2) + timing.waitSecs);
+      deliver_reward( task_interface, 1, timing.init_reward_m1_m2);
 %       deliver_reward( task_interface, 0, timing.init_reward_m1_m2);
     end
   end
@@ -384,16 +479,18 @@ while ( ~ptb.util.is_esc_down() && ...
     gaze-triggered delay
   %}
 
-  if ( enable_gaze_triggered_delay && rand() < trial_desc.prob_gaze_triggered_delay )
-    [acq, m2_fixated] = state_gaze_triggered_delay( m2_eye_roi, timing.gaze_triggered_delay, is_gaze_trial, timing.gaze_delay_fixation_time );
+  if ( enable_gaze_triggered_delay && acquired_m1)% && rand() < trial_desc.prob_gaze_triggered_delay )
+    [acq, m2_fixated,trial_rec.gaze_triggered_delay.fix_state_actor,trial_rec.gaze_triggered_delay.fix_state_signaler] = state_gaze_triggered_delay( m2_eye_roi, timing.gaze_triggered_delay, is_gaze_trial, timing.gaze_delay_fixation_time );
     trial_rec.gaze_triggered_delay.acquired = acq;
 
     deliver_reward( task_interface, 1, timing.gaze_delay_reward_m2* m2_fixated);
     deliver_reward( task_interface, 0, timing.gaze_delay_reward_m1* acq);
 
     fprintf( '\n Gaze triggered delay m1 looked: %d\n', acq );
-    fprintf( '\n Gaze triggered delay m2 fixated: %d\n', m2_fixated );
-    
+%     fprintf( '\n Gaze triggered delay m2 fixated: %d\n', m2_fixated );
+    ['m1 gaze to m2:']
+    m1_correct_gaze = m1_correct_gaze+acq;
+    m1_correct_gaze/trial_inde
 %     if ( m2_fixated )
 %       WaitSecs( timing.init_reward_m1_m2 + timing.waitSecs);
 %       deliver_reward( task_interface, 1, timing.gaze_delay_reward_m2 );
@@ -484,7 +581,8 @@ while ( ~ptb.util.is_esc_down() && ...
   %}
     
   actor_resp_choice = [];
-  if ( enable_actor_response &(acquired_m1) )
+  only_left = rand(1)<0.8;
+  if ( enable_actor_response && (acquired_m1) )
     [trial_rec.actor_response, actor_resp_choice] = state_actor_response( is_gaze_trial );
     fprintf( '\n\n Actor chose: %d\n\n', actor_resp_choice );
   end
@@ -513,8 +611,10 @@ while ( ~ptb.util.is_esc_down() && ...
   %{
     iti
   %}
-
+  'iti: '
+  tic
   state_iti();
+  toc
 end
 
 catch err
@@ -540,21 +640,19 @@ function [res, acquired_m1,acquired_m2] = state_fixation_with_block_rule()
 
   loc_draw_cb = wrap_draw(...
     {@draw_fixation_crosses, @maybe_draw_gaze_cursors},1,1);
-
-  deliver_reward_m1_cb = @() deliver_reward(task_interface, 0, timing.initial_reward_m1);
-  deliver_reward_m2_cb = @() deliver_reward(task_interface, 1, timing.initial_reward_m2);
+%   loc_draw_cb = @do_draw;
 
   [fs_m1, fs_m2] = joint_fixation2( ...
     @time_cb, loc_draw_cb ...
-    , @() rect_pad(m1_centered_rect_remap(fix_cross_size), cross_padding), @get_m1_position ...
-    , @() rect_pad(m2_centered_rect_remap(fix_cross_size), cross_padding), @get_m2_position ...
+    , @m1_rect, @get_m1_position ...
+    , @m2_rect, @get_m2_position ...
     , @local_update ...
     , timing.initial_fixation_duration_m1...
     , timing.initial_fixation_duration_m2...
     , timing.initial_fixation_state_duration ...
     , [] ...
-    , 'm1_every_acq_callback', deliver_reward_m1_cb ...
-    , 'm2_every_acq_callback', deliver_reward_m2_cb ...
+    , 'm1_every_acq_callback', @m1_acquire_cb ...
+    , 'm2_every_acq_callback', @m2_acquire_cb ...
     , 'overlap_duration_to_exit', timing.overlap_duration_to_exit ...
   );
 
@@ -563,6 +661,35 @@ function [res, acquired_m1,acquired_m2] = state_fixation_with_block_rule()
   acquired_m1 = fs_m1.ever_acquired;
   acquired_m2 = fs_m2.ever_acquired;
   acquired = fs_m1.acquired && fs_m2.acquired;
+
+  function r = m1_rect()
+    r = rect_pad(m1_centered_rect_remap(fix_cross_size_m1), cross_padding_m1);
+  end
+
+  function r = m2_rect()
+    r = rect_pad(m2_centered_rect_remap(fix_cross_size_m2), cross_padding_m2);
+  end
+
+  function do_draw()
+    fill_rect( win_m1, [0, 255, 0], m1_rect() );
+    fill_rect( win_m2, [0, 255, 0], m2_rect() );
+    if ( 1 )
+      fill_oval( win_m1, [255, 0, 255], centered_rect(get_m1_position(), 50) );
+      fill_oval( win_m2, [255, 0, 255], centered_rect(get_m2_position(), 50) );
+    end
+    flip( win_m1, false );
+    flip( win_m2, false );
+  end
+
+  function m1_acquire_cb()
+%     default_trigger_async( task_interface.sync_interface, 0 );
+    deliver_reward(task_interface, 0, timing.initial_reward_m1);
+%     default_trigger_async( task_interface.sync_interface, 0 );
+  end
+
+  function m2_acquire_cb()
+    deliver_reward(task_interface, 1, timing.initial_reward_m2);
+  end
 end
 
 function draw_spatial_rule_outline(actor_win, is_gaze_trial)
@@ -577,7 +704,7 @@ function draw_spatial_rule_outline(actor_win, is_gaze_trial)
   r = get( actor_win.Rect );
   if ( enable_remap )
 %       fr = [ r(1), r(2), r(3), center_remap_m1(2) ];
-    h = screen_height / monitor_height * (r(4) - r(2));
+    h = screen_height_left / monitor_height * (r(4) - r(2));
     fr = centered_rect( center_screen_m1, [r(3) - r(1), h ]);
 
   else
@@ -595,8 +722,8 @@ function [res, acquired] = state_spatial_rule(is_gaze_trial)
   loc_draw_cb = wrap_draw({@draw_spatial_rule, @maybe_draw_gaze_cursors},1,1);
   [fs_m1, fs_m2] = static_fixation2( ...
     @time_cb, loc_draw_cb ...
-  , @() rect_pad(m1_centered_rect_remap(fix_cross_size), target_padding), @get_m1_position ...
-  , @() rect_pad(m2_centered_rect_remap(fix_cross_size), target_padding), @get_m2_position ...
+  , @() rect_pad(m1_centered_rect_remap(fix_cross_size_m1), target_padding_m1), @get_m1_position ...
+  , @() rect_pad(m2_centered_rect_remap(fix_cross_size_m2), target_padding_m2), @get_m2_position ...
   , @local_update, timing.spatial_rule_fixation_duration, timing.spatial_rule_state_duration );
 
   res = struct();
@@ -608,40 +735,51 @@ function [res, acquired] = state_spatial_rule(is_gaze_trial)
   %%%%%%%%
   function draw_spatial_rule()
     draw_spatial_rule_outline( actor_win, is_gaze_trial );
-    draw_texture( win_m1, cross_im, m1_centered_rect_screen(fix_cross_size) );
-    draw_texture( win_m2, cross_im, m2_centered_rect_screen(fix_cross_size) );
+    draw_texture( win_m1, cross_im, m1_centered_rect_screen(fix_cross_size_m1) );
+    draw_texture( win_m2, cross_im, m2_centered_rect_screen(fix_cross_size_m2) );
   end
 end
 
-function [actor_success, signaler_fixated] = state_gaze_triggered_delay(trigger_roi, timeout, is_gaze_trial, fix_time)
+function [actor_success, signaler_fixated,fix_state_actor,fix_state_signaler] = state_gaze_triggered_delay(trigger_roi, timeout, is_gaze_trial, fix_time)
   if ( isempty(trigger_roi) )
     trigger_roi = nan( 1, 4 );
   end
   actor_success = false;
   signaler_fixated = true;
   loc_draw_cb = wrap_draw({@draw, @maybe_draw_gaze_cursors},1,1);
-  signaler_rect = rect_pad(...
-      centered_rect(center_remap_m2, [fix_cross_size, fix_cross_size]), cross_padding);
   signaler_win = win_m2;
   actor_win = win_m1;
-  t0 = tic();
-  fix_state = FixationStateTracker( toc(t0) );
+  signaler_rects = lr_rects( get(signaler_win.Rect), [fix_target_size_m2, fix_target_size_m2] );% [100,100];
+%   signaler_rect = rect_pad(...
+%       centered_rect(center_remap_m2, [fix_cross_size_m2, fix_cross_size_m2]), cross_padding_m2);
+  
+  
+%   t0 = tic();
+  t0 = time_cb();
+  t00 = tic();
+%   fix_state = FixationStateTracker( toc(t0) );
+  fix_state_actor = FixationStateTracker(t0);
+  fix_state_signaler = FixationStateTracker(t0);
 
-  while ( toc(t0) < timeout )
+  while ( toc(t00) < timeout )
     local_update();
     loc_draw_cb();
 
     actor_pos = get_m1_position();
     signal_pos = get_m2_position();
 
-    if ~( signal_pos(1) >= signaler_rect(1) && signal_pos(1) <= signaler_rect(3) && ...
-          signal_pos(2) >= signaler_rect(2) && signal_pos(2) <= signaler_rect(4) )
-      % not within fix bounds
-      signaler_fixated = false;
-    end
+%     if ~( signal_pos(1) >= signaler_rect(1) && signal_pos(1) <= signaler_rect(3) && ...
+%           signal_pos(2) >= signaler_rect(2) && signal_pos(2) <= signaler_rect(4) )
+%       % not within fix bounds
+%       signaler_fixated = false;
+%     end
 
-    update( fix_state, actor_pos(1), actor_pos(2), toc(t0), fix_time, trigger_roi );
-    if ( fix_state.ever_acquired )
+%     update( fix_state, actor_pos(1), actor_pos(2), toc(t00), fix_time, trigger_roi );
+    update( fix_state_actor, actor_pos(1), actor_pos(2), time_cb(), fix_time, trigger_roi );
+
+%     update( fix_state_signaler, signal_pos(1), signal_pos(2), time_cb(), fix_time, trigger_roi );
+
+    if ( fix_state_actor.ever_acquired )
       % actor looked within m2's eyes
       actor_success = true;
       break
@@ -664,10 +802,29 @@ function [actor_success, signaler_fixated] = state_gaze_triggered_delay(trigger_
       draw_spatial_rule_outline( actor_win, is_gaze_trial );
     end
 
-    draw_texture( signaler_win, cross_im, m1_centered_rect_screen(fix_cross_size) );
+%     draw_texture( signaler_win, cross_im, m1_centered_rect_screen(fix_cross_size_m2) );
     if ( draw_m2_eye_roi )
       fill_rect( actor_win, [255, 255, 255], trigger_roi );
     end
+  end
+
+
+  function draw_spatial_cues()
+    signaler_rects = lr_rects( get(signaler_win.Rect), [fix_target_size_m2, fix_target_size_m2] );% [100,100];
+  
+    if ( swap_signaler_dir )
+      signaler_rects = fliplr( signaler_rects );
+    end
+  
+    if ( always_draw_spatial_rule_outline )
+      draw_spatial_rule_outline( actor_win, is_gaze_trial );
+    end
+  
+    draw_texture(signaler_win, targ1_im_m2, signaler_rects{1})
+    draw_texture(signaler_win, targ2_im_m2, signaler_rects{2})
+  
+  %     fill_oval( signaler_win, [255, 255, 255], signaler_rects{1} );
+  %     fill_rect( signaler_win, [255, 255, 255], signaler_rects{2} );
   end
 end
 
@@ -681,8 +838,8 @@ function [res, signaler_choice] = state_spatial_cue(swap_signaler_dir, laser_ind
   signaler_pos = @get_m2_position;
 
   loc_draw_cb = wrap_draw({@draw_spatial_cues, @maybe_draw_gaze_cursors},1,1);
-  signaler_rects_cb = @() rect_pad(lr_rects_remap(get(signaler_win.Rect), [fix_target_size, fix_target_size]), target_padding);
-  actor_rects_cb = @() rect_pad(centered_rect(center_remap_m1, [fix_target_size, fix_target_size]), target_padding);
+  signaler_rects_cb = @() rect_pad(lr_rects_remap(get(signaler_win.Rect), [fix_target_size_m2, fix_target_size_m2]), target_padding_m2);
+  actor_rects_cb = @() rect_pad(centered_rect(center_remap_m1, [fix_target_size_m1, fix_target_size_m1]), target_padding_m1);
 %   actor_rects_cb = @() centered_rect(actor_win.Center, [100, 100]);
 
   chooser_time = timing.spatial_cue_state_chooser_duration;
@@ -716,7 +873,7 @@ function [res, signaler_choice] = state_spatial_cue(swap_signaler_dir, laser_ind
   end
 
   function draw_spatial_cues()
-    signaler_rects = lr_rects( get(signaler_win.Rect), [fix_target_size, fix_target_size] );% [100,100];
+    signaler_rects = lr_rects( get(signaler_win.Rect), [fix_target_size_m2, fix_target_size_m2] );% [100,100];
 
     if ( swap_signaler_dir )
       signaler_rects = fliplr( signaler_rects );
@@ -742,8 +899,8 @@ function res = state_fixation_delay(is_gaze_trial)
     {@do_draw, @maybe_draw_gaze_cursors},1,1);
   [fs_m1, fs_m2] = joint_fixation2( ...
     @time_cb, loc_draw_cb ...
-    , @() rect_pad(m1_centered_rect_remap(fix_cross_size), cross_padding), @get_m1_position ...
-    , @() rect_pad(m2_centered_rect_remap(fix_cross_size), cross_padding), @get_m2_position ...
+    , @() rect_pad(m1_centered_rect_remap(fix_cross_size_m1), cross_padding_m1), @get_m1_position ...
+    , @() rect_pad(m2_centered_rect_remap(fix_cross_size_m1), cross_padding_m2), @get_m2_position ...
     , @local_update ...
     , timing.fixation_delay_duration...
     , timing.fixation_delay_duration...
@@ -840,9 +997,12 @@ function [res, actor_resp_choice] = state_actor_response(is_gaze_trial)
     if ( always_draw_spatial_rule_outline )
       draw_spatial_rule_outline( chooser_win, is_gaze_trial );
     end
-
-    fill_oval( chooser_win, [255, 255, 255], actor_rects{1} );
-    fill_oval( chooser_win, [255, 255, 255], actor_rects{2} );
+    if only_left
+      fill_oval( chooser_win, [255, 255, 255], actor_rects{1} );
+    else
+      fill_oval( chooser_win, [255, 255, 255], actor_rects{1} );
+      fill_oval( chooser_win, [255, 255, 255], actor_rects{2} );
+    end
 
 %     draw_texture( fixator_win, cross_im, m2_centered_rect_screen(fix_cross_size) );
   end
@@ -853,8 +1013,8 @@ function state_response_feedback()
 
   static_fixation2( ...
     @time_cb, wrap_draw({@maybe_draw_gaze_cursors},1,1) ...
-  , @() rect_pad(m1_centered_rect_remap(fix_cross_size), target_padding), @get_m1_position ...
-  , @() rect_pad(m2_centered_rect_remap(fix_cross_size), target_padding), @get_m2_position ...
+  , @() rect_pad(m1_centered_rect_remap(fix_cross_size_m1), target_padding_m1), @get_m1_position ...
+  , @() rect_pad(m2_centered_rect_remap(fix_cross_size_m2), target_padding_m2), @get_m2_position ...
   , @local_update, timing.feedback_duration, timing.feedback_duration );
 end
 
@@ -863,8 +1023,8 @@ function state_iti()
 
   static_fixation2( ...
     @time_cb, wrap_draw({@maybe_draw_gaze_cursors},1,1) ...
-  , @() rect_pad(m1_centered_rect_remap(fix_cross_size), target_padding), @get_m1_position ...
-  , @() rect_pad(m2_centered_rect_remap(fix_cross_size), target_padding), @get_m2_position ...
+  , @() rect_pad(m1_centered_rect_remap(fix_cross_size_m1), target_padding_m1), @get_m1_position ...
+  , @() rect_pad(m2_centered_rect_remap(fix_cross_size_m2), target_padding_m2), @get_m2_position ...
   , @local_update, timing.iti_duration, timing.iti_duration );
 end
 
@@ -999,20 +1159,19 @@ function draw_error(show_m1, show_m2)
   if ( nargin < 1 )
     show_m1 = true;
   end
-%   fill_rect( win_m1, [255, 255, 0], m1_centered_rect_screen(error_square_size) );
-%   fill_rect( win_m2, [255, 255, 0], m2_centered_rect_screen(error_square_size) );
+%   fill_rect( win_m1, [255, 255, 0], m1_centered_rect_screen(error_square_size_m1) );
+%   fill_rect( win_m2, [255, 255, 0], m2_centered_rect_screen(error_square_size_m2) );
   if ( show_m1 )
-    fill_rect( win_m1, [0, 255, 0], m1_centered_rect_screen(error_square_size) );
+    fill_rect( win_m1, [0, 255, 0], m1_centered_rect_screen(error_square_size_m1) );
   end
   if ( show_m2 )
-    fill_rect( win_m2, [0, 255, 0], m2_centered_rect_screen(error_square_size) );
+    fill_rect( win_m2, [0, 255, 0], m2_centered_rect_screen(error_square_size_m2) );
   end
 end
 
 function draw_fixation_crosses()
-
-  draw_texture( win_m1, cross_im, m1_centered_rect_screen(fix_cross_size) );
-  draw_texture( win_m2, cross_im, m2_centered_rect_screen(fix_cross_size) );
+  draw_texture( win_m1, cross_im, m1_centered_rect_screen(fix_cross_size_m1) );
+  draw_texture( win_m2, cross_im, m2_centered_rect_screen(fix_cross_size_m2) );
 end
 
 
@@ -1057,11 +1216,11 @@ function rs = rect_pad(rs, target_padding)
 
   function r = do_pad(r, target_padding)
     if ( numel(target_padding) == 1 )
-      r([1, 2]) = r([1, 2]) - target_padding;
-      r([3, 4]) = r([3, 4]) + target_padding;
+      r([1, 2]) = r([1, 2]) - target_padding * 0.5;
+      r([3, 4]) = r([3, 4]) + target_padding * 0.5;
     else
-      r([1, 2]) = r([1, 2]) - target_padding(1);
-      r([3, 4]) = r([3, 4]) + target_padding(2);
+      r([1, 2]) = r([1, 2]) - target_padding(1) * 0.5;
+      r([3, 4]) = r([3, 4]) + target_padding(2) * 0.5;
     end
   end
 end
@@ -1115,5 +1274,27 @@ function r = centered_rect(xy, size)
 end
 
 function r = invalid_rect()
-r = nan( 1, 4 );
+  r = nan( 1, 4 );
+end
+
+function [sizex,sizey] = visangle2stimsize(visanglex,visangley,totdist,screenwidth,screenres)
+  if nargin < 3
+      % mm
+  %     distscreenmirror=823;
+  %     distmirroreyes=90;
+      totdist=500;% mm
+      screenwidth=338.66666667;%mm
+      % pixels
+      screenres=1280;% pixel
+  end
+  
+  visang_rad = 2 * atan(screenwidth/2/totdist);
+  visang_deg = visang_rad * (180/pi);
+  pix_pervisang = screenres / visang_deg;
+  sizex = visanglex * pix_pervisang;
+%   sizex = round(visanglex * pix_pervisang);
+  if nargin > 1
+    sizey = visangley * pix_pervisang;
+%       sizey = round(visangley * pix_pervisang);
+  end
 end
