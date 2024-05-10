@@ -1,6 +1,6 @@
 function run_gf_pair_train_L_E_stage3()
 
-cd 'C:\Users\setup2\source\setup2_ni\deps\network-events\Resources\Matlab';
+cd 'C:\Users\chang\source\setup2_ni\deps\network-events\Resources\Matlab';
 
 m2_eye_roi = [];
 
@@ -33,7 +33,7 @@ proj_p_image = fileparts( which(mfilename) );
 proj_p = 'D:\tempData';
 
 bypass_trial_data = false ;    
-save_data = false;
+save_data = true;
 full_screens = true;
 max_num_trials = 50;
 
@@ -175,7 +175,7 @@ end
 
 % open windows before ni
 if ( full_screens )
-  win_m1 = open_window( 'screen_index', 1, 'screen_rect', [] );% 1 for M1 
+  win_m1 = open_window( 'screen_index', 3, 'screen_rect', [] );% 1 for M1 
   win_m2 = open_window( 'screen_index', 2, 'screen_rect', [] );% 3 for M2
 else
   win_m1 = open_window( 'screen_index', 4, 'screen_rect', [0, 0, 400, 400] );
