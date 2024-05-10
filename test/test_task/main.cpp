@@ -11,18 +11,18 @@ using namespace ni;
 
 int main(int, char**) {
   task::InitParams init_p{};
-  init_p.samples_file_p = "C:\\Users\\setup2\\source\\setup2_ni\\data\\test.dat";
+  init_p.samples_file_p = "D:\\open_ephys_data\\test.dat";
 
   task::start_ni(init_p);
 
   auto t0 = time::now();
   auto pulse_t0 = time::now();
-  while (time::Duration(time::now() - t0).count() < 10.0) {
+  while (time::Duration(time::now() - t0).count() < 300.0) {
     task::update_ni();
 
     auto samp = task::read_latest_sample();
 #if 1
-    printf("(%0.4f) %0.4f, %0.4f, %0.4f | %0.4f, %0.4f, %0.4f\n",
+    printf("(%0.4f) pup %0.4f, x %0.4f, y %0.4f | pup %0.4f, x %0.4f, y %0.4f\n",
            samp.sync, samp.pupil1, samp.x1, samp.y1, samp.pupil2, samp.x2, samp.y2);
 #endif
 
