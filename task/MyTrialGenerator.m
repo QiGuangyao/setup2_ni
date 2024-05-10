@@ -14,6 +14,8 @@ classdef MyTrialGenerator < handle
       obj.trial_types = randi( 2, nt, 1 ) - 1;
       obj.signaler_target_dirs = randi( 2, nt, 1 ) - 1;
 %       % shuffle
+      rng("shuffle")
+%       rand
       temp_trial = [zeros( nt/2, 1 );ones( nt/2, 1 )];
       obj.signaler_target_dirs = temp_trial(randperm(length(temp_trial)));
 
