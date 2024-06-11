@@ -1,4 +1,10 @@
-function run_gf_pair_train_L_E_stage2_3()
+function run_gf_pair_train_T_H_stage2_4()
+
+global prefer_center_y;
+global prefer_relative_sizes;
+
+prefer_center_y = true;
+prefer_relative_sizes = true;
 
 cd 'C:\Users\setup2\source\setup2_ni\deps\network-events\Resources\Matlab';
 
@@ -10,8 +16,8 @@ try
 
 % eye roi target width and height padding
 useEyeROI = false;
-m2_eye_roi_padding_x = 100;
-m2_eye_roi_padding_y = 100;
+m2_eye_roi_padding_x = 50;
+m2_eye_roi_padding_y = 50;
 m2_face_roi_padding_x = 0;
 m2_face_roi_padding_y = 0;
 if useEyeROI
@@ -41,7 +47,7 @@ proj_p = 'D:\tempData';
 bypass_trial_data = false ;    
 save_data = true;
 full_screens = true;
-max_num_trials = 500;
+max_num_trials = 100;
 rng("shuffle")
 draw_m2_eye_roi = false;
 draw_m1_gaze = false;
@@ -61,9 +67,9 @@ enbale_fixation_with_block_rule = true;
 timing.initial_fixation_duration_m1 = 0.1;
 timing.initial_fixation_duration_m2 = 0.1;
 timing.initial_fixation_state_duration = 1.5;
-timing.initial_reward_m1 = 0.05;
-timing.initial_reward_m2 = 0.2;
-timing.init_reward_m1_m2 = 0.05;
+timing.initial_reward_m1 = 0.00;
+timing.initial_reward_m2 = 0.00;
+timing.init_reward_m1_m2 = 0.00;
 
 % 2 spatial rule
 if always_draw_spatial_rule_outline
@@ -115,12 +121,12 @@ gaze_triggered_actor_choice_break_upon_m2_wrong_choice = true;
 
 % timing.gaze_triggered_actor_choice_m2_choice_duration = 3; % @TODO
 timing.gaze_triggered_actor_choice_m2_choice_duration = 3; % @TODO
-timing.gaze_triggered_actor_choice_m1_remaining_time = 3;
+timing.gaze_triggered_actor_choice_m1_remaining_time = 2;
 timing.enable_gaze_triggered_actor_choice_time_m1 = 0.1; % @TODO
-timing.enable_gaze_triggered_actor_choice_time_m2 = 0.15; % @TODO
+timing.enable_gaze_triggered_actor_choice_time_m2 = 0.1; % @TODO
 timing.enable_gaze_triggered_actor_choice_m2_timeout_duration = 0.15;  % @TODO
-timing.enable_gaze_triggered_actor_choice_reward_m2 = 0.2; % @TODOr
-timing.enable_gaze_triggered_actor_choice_reward_m1 = 0.4; % @TODO
+timing.enable_gaze_triggered_actor_choice_reward_m2 = 0.2; % @TODO
+timing.enable_gaze_triggered_actor_choice_reward_m1 = 0.2; % @TODO
 timing.enable_gaze_triggered_actor_choice_m1_face_fix_time = 0.1;
 timing.enable_gaze_triggered_actor_choice_break_on_m1_first_choice = true;
 
@@ -199,8 +205,8 @@ timing.overlap_duration_to_exit = nan;
 %{
 name of monkeys
 %}
-name_of_m1 ='M1_lynch';% 'lynch';%'M1_simu';
-name_of_m2 ='M2_ephron';% 'Hitch';
+name_of_m1 ='M1_tara';% 'lynch';%'M1_simu';
+name_of_m2 ='M2_hitch';% 'Hitch';
 %{
   stimuli parameters
 %}
@@ -209,13 +215,13 @@ name_of_m2 ='M2_ephron';% 'Hitch';
   stimuli parameters
 %}
 
-fix_cross_visu_angl = 6;%deg
+fix_cross_visu_angl = 5;%deg
 visanglex = fix_cross_visu_angl;
 visangley = fix_cross_visu_angl;
 
-totdist_m1 = 300;%mm
-totdist_m2 = 310;%mm
-screen_height_left = 8.5;% cm after monitor down 
+totdist_m1 = 310;%mm
+totdist_m2 = 315;%mm
+screen_height_left = 8;% cm after monitor down 
 
 
 
@@ -283,7 +289,20 @@ if ( full_screens )
 else
   win_m1 = open_window( 'screen_index', 4, 'screen_rect', [0, 0, 400, 400] );
   win_m2 = open_window( 'screen_index', 4, 'screen_rect', [400, 0, 800, 400] );
+end
 
+debug_monitor_index = 1;
+% debug_monitor_index = []; % disable by leaving the index empty
+win_debug_m1 = [];
+win_debug_m2 = [];
+if ( ~isempty(debug_monitor_index) )
+  screen_x_off = [ 1600, 0, 1600, 0 ];
+  ar = win_m1.Height / win_m1.Width;
+  new_w = 800;
+  new_h = new_w * ar;
+
+  win_debug_m1 = open_window( 'screen_index', debug_monitor_index, 'screen_rect', [0, 0, new_w, new_h] + screen_x_off );
+  win_debug_m2 = open_window( 'screen_index', debug_monitor_index, 'screen_rect', [new_w, 0, new_w * 2, new_h] + screen_x_off );
 end
 
 %{
@@ -424,9 +443,9 @@ cross_im = ptb.Image( win_m1, imread(fullfile(proj_p_image, 'images/cross.jpg'))
 % rotated_cross_im = ptb.Image( win_m1, imread(fullfile(proj_p, 'images/rotated_cross.jpg')));
 
 % rewarded (correct) target
-targ1_im_m2 = ptb.Image( win_m2, imread(fullfile(proj_p_image, 'images/rotated_rect.jpg')));
+targ1_im_m2 = ptb.Image( win_m2, imread(fullfile(proj_p_image, 'images/rect.jpg')));
 % opposite target
-targ2_im_m2 = ptb.Image( win_m2, imread(fullfile(proj_p_image, 'images/rect.jpg')));
+targ2_im_m2 = ptb.Image( win_m2, imread(fullfile(proj_p_image, 'images/rotated_rect.jpg')));
 % m1 targets
 % targ_im_m1 = ptb.Image( win_m1, imread(fullfile(proj_p, 'images/circle.jpg')));
 
@@ -539,7 +558,7 @@ while ( ~ptb.util.is_esc_down() && ...
 % %     if ((~acquired_m2))
 %       % error
 % %       tic
-      error_timeout_state( timing.error_duration,1,1, ~acquired_m1, ~acquired_m2);
+      error_timeout_state( timing.error_duration,~acquired_m1,~acquired_m2, ~acquired_m1, ~acquired_m2);
       state_iti();
 % %       toc
       continue
@@ -554,7 +573,9 @@ while ( ~ptb.util.is_esc_down() && ...
       WaitSecs( max(timing.initial_reward_m1, timing.initial_reward_m2) + timing.waitSecs);
       deliver_reward( task_interface, 1, timing.init_reward_m1_m2);
       deliver_reward( task_interface, 0, timing.init_reward_m1_m2);
-
+       play(player)
+       WaitSecs(0.3)
+       pause(player)
     end
   end
 
@@ -652,16 +673,12 @@ while ( ~ptb.util.is_esc_down() && ...
     if was_m1_correct
       m1_target_correct = m1_target_correct+1;
       m1_corr_curr = 1;
-%        play(player)
-%        WaitSecs(0.3)
-%        pause(player)
     else
       m1_corr_curr = 0;
     end
 
     if was_m2_correct
       m2_target_correct = m2_target_correct+1;
-
     end
 %     m2_target_correct = m2_target_correct+was_m2_correct;
     m1_target_correct/trial_inde
@@ -677,9 +694,10 @@ while ( ~ptb.util.is_esc_down() && ...
     end
   end
 
-  if ( 1)
-    state_iti();
-  end
+%   if ( 1)
+%     state_iti();
+%   end
+
 %   swap_signaler_dir,spatial_cue_choice
 
 
@@ -724,8 +742,8 @@ while ( ~ptb.util.is_esc_down() && ...
   %}
     
   actor_resp_choice = [];
-  only_left = rand(1)<0.8;
-  if ( enable_actor_response && (acquired_m1) )
+%   only_left = rand(1)<0.5;
+  if ( enable_actor_response && (acquired_m1)&&acquired_m2 )
     [trial_rec.actor_response, actor_resp_choice] = state_actor_response( is_gaze_trial );
     fprintf( '\n\n Actor chose: %d\n\n', actor_resp_choice );
   end
@@ -826,6 +844,12 @@ function [res, acquired_m1,acquired_m2] = state_fixation_with_block_rule()
     end
     flip( win_m1, false );
     flip( win_m2, false );
+    if ( ~isempty(win_debug_m1) )
+      flip( win_debug_m1, false );
+    end
+    if ( ~isempty(win_debug_m2) )
+      flip( win_debug_m2, false );
+    end
   end
 
   function m1_acquire_cb()
@@ -1069,9 +1093,12 @@ end
   m2_ever_entered = false;
   enable_m1_targets = false;
   m1_looked_time = nan;
+
+  use_more_than_2_targets = true;
+  num_targets = 4;
     
-  choice_m1 = ChoiceTracker( start_t, 2 );
-  choice_m2 = ChoiceTracker( start_t, 2 );
+  choice_m1 = ChoiceTracker( start_t, num_targets );
+  choice_m2 = ChoiceTracker( start_t, num_targets );
 
   fix_state_actor = FixationStateTracker(start_t);
 
@@ -1086,53 +1113,79 @@ end
   it M, then the right target is random in (M+2:N)
   
   %}
-  num_chunks = 5;
-  min_space_between_targets = 4;
-  width_frac = 0.8;
-  dist_idxs = [2,3,4];
-  dist_idx=randperm(length(dist_idxs),1);
-  dist_choo=dist_idxs(dist_idx);
-  dist_choo = 2;
-  if dist_choo == 4
-    if rand()<1/2
-      m2_left_chunk = targ_loca_dist_4(1);
-      m2_right_chunk = targ_loca_dist_4(2);
-    else
-      m2_left_chunk = targ_loca_dist_4(2);
-      m2_right_chunk = targ_loca_dist_4(1);
-    end
-  elseif dist_choo == 2
-    if rand()<1/2
-      m2_left_chunk = targ_loca_dist_2(1);
-      m2_right_chunk = targ_loca_dist_2(2);
-    else
-      m2_left_chunk = targ_loca_dist_2(2);
-      m2_right_chunk = targ_loca_dist_2(1);
-    end
-  else
-    tempRand = rand();
-    if tempRand<1/4
-      m2_left_chunk = targ_loca_dist_3(1,1);
-      m2_right_chunk = targ_loca_dist_3(1,2);
-    elseif tempRand<2/4
-      m2_left_chunk = targ_loca_dist_3(1,2);
-      m2_right_chunk = targ_loca_dist_3(1,1);
-    elseif tempRand<3/4
-      m2_left_chunk = targ_loca_dist_3(2,2);
-      m2_right_chunk = targ_loca_dist_3(2,1);
-    else
-      m2_left_chunk = targ_loca_dist_3(2,1);
-      m2_right_chunk = targ_loca_dist_3(2,2);
-    end
-  end
 
-%   [m2_left_chunk, m2_right_chunk] = choose_chunks( num_chunks, min_space_between_targets );
-
-  m1_right_chunk = (num_chunks - m2_left_chunk) + 1;
-  m1_left_chunk = (num_chunks - m2_right_chunk) + 1;
+  im_m2s = {targ1_im_m2, targ2_im_m2};
   
-  [m2_left, m2_right] = left_right_components( get(win_m2.Rect), width_frac, m2_left_chunk, m2_right_chunk, num_chunks );
-  [m1_left, m1_right] = left_right_components( get(win_m1.Rect), width_frac, m1_left_chunk, m1_right_chunk, num_chunks );
+  if ( use_more_than_2_targets )
+    num_chunks = num_targets + 1;
+    width_frac = 0.8;
+
+    m2_correct_target_index = randi( num_targets );
+    m1_correct_target_index = (num_targets - m2_correct_target_index) + 1;
+
+    % remove center chunk (3)
+    chunk_indices = setdiff( 1:num_chunks, 3 );
+
+    m2_cxs = arrayfun( @(x) component_center_by_index(get(win_m2.Rect) ...
+      , width_frac, x, num_chunks), chunk_indices );
+    m1_cxs = arrayfun( @(x) component_center_by_index(get(win_m1.Rect) ...
+      , width_frac, x, num_chunks), chunk_indices );
+
+    im_m2s = repmat( {targ2_im_m2}, 1, numel(m2_cxs) );
+    im_m2s{m2_correct_target_index} = targ1_im_m2;
+
+  else
+    num_chunks = 5;
+    min_space_between_targets = 4;
+    width_frac = 0.8;
+    dist_idxs = [2,3,4];
+    dist_idx=randperm(length(dist_idxs),1);
+    dist_choo=dist_idxs(dist_idx);
+    dist_choo = 2;
+    if dist_choo == 4
+      if rand()<1/2
+        m2_left_chunk = targ_loca_dist_4(1);
+        m2_right_chunk = targ_loca_dist_4(2);
+      else
+        m2_left_chunk = targ_loca_dist_4(2);
+        m2_right_chunk = targ_loca_dist_4(1);
+      end
+    elseif dist_choo == 2
+      if rand()<1/2
+        m2_left_chunk = targ_loca_dist_2(1);
+        m2_right_chunk = targ_loca_dist_2(2);
+      else
+        m2_left_chunk = targ_loca_dist_2(2);
+        m2_right_chunk = targ_loca_dist_2(1);
+      end
+    else
+      tempRand = rand();
+      if tempRand<1/4
+        m2_left_chunk = targ_loca_dist_3(1,1);
+        m2_right_chunk = targ_loca_dist_3(1,2);
+      elseif tempRand<2/4
+        m2_left_chunk = targ_loca_dist_3(1,2);
+        m2_right_chunk = targ_loca_dist_3(1,1);
+      elseif tempRand<3/4
+        m2_left_chunk = targ_loca_dist_3(2,2);
+        m2_right_chunk = targ_loca_dist_3(2,1);
+      else
+        m2_left_chunk = targ_loca_dist_3(2,1);
+        m2_right_chunk = targ_loca_dist_3(2,2);
+      end
+    end
+
+  %   [m2_left_chunk, m2_right_chunk] = choose_chunks( num_chunks, min_space_between_targets );
+  
+    m1_right_chunk = (num_chunks - m2_left_chunk) + 1;
+    m1_left_chunk = (num_chunks - m2_right_chunk) + 1;
+    
+    [m2_left, m2_right] = left_right_components( get(win_m2.Rect), width_frac, m2_left_chunk, m2_right_chunk, num_chunks );
+    [m1_left, m1_right] = left_right_components( get(win_m1.Rect), width_frac, m1_left_chunk, m1_right_chunk, num_chunks );
+
+    m2_cxs = [ m2_left, m2_right ];
+    m1_cxs = [ m1_left, m1_right ];
+  end
   
   while ( time_cb() - start_t < state_duration )
     local_update();
@@ -1163,7 +1216,11 @@ end
         
         m2_timer = tic();
         m2_ever_chose = true;
-        was_m2_correct = (m2_choice==2 & swap_signaler_dir) | (m2_choice==1 & ~swap_signaler_dir);
+        was_m2_correct = check_is_m2_correct( m2_choice );
+
+        if ( ~was_m2_correct && gaze_triggered_actor_choice_break_upon_m2_wrong_choice )
+          break
+        end
 
         if ( ~triggered_m2_reward && was_m2_correct )
           deliver_reward( task_interface, 1, reward_m2 );
@@ -1174,9 +1231,15 @@ end
     end
     
     % m1
-    update( fix_state_actor, m1_xy(1), m1_xy(2), time_cb(), fix_time, m2_eye_roi );
+    if ( ~isempty(m2_eye_roi) )
+      update( fix_state_actor, m1_xy(1), m1_xy(2), time_cb(), fix_time, m2_eye_roi );
+    end
+
     if ( ~m1_looked )
-      if ( m2_ever_entered && rect_in_bounds(m2_eye_roi, m1_xy(1), m1_xy(2)) && fix_state_actor.ever_acquired)
+      if ( m2_ever_entered && ...
+          (isempty(m2_eye_roi) || rect_in_bounds(m2_eye_roi, m1_xy(1), m1_xy(2))) && ...
+          (isempty(m2_eye_roi) || fix_state_actor.ever_acquired) )
+        % 
         WaitSecs(m1_wait_time) 
         m1_looked = true;
         enable_m1_targets = true;
@@ -1193,15 +1256,13 @@ end
       [m1_chose, m1_choice] = update( ...
         choice_m1, m1_xy(1), m1_xy(2), curr_t, choice_time_m1, m1_rects_remap() );
 
-      was_m1_correct = (m1_choice==1 & swap_signaler_dir) | (m1_choice==2 & ~swap_signaler_dir);
+      was_m1_correct = check_is_m1_correct( m1_choice );
       m1_ever_chose = m1_ever_chose || m1_chose;
 
       if ( m1_chose )
         if ( was_m1_correct )
           deliver_reward( task_interface, 0, reward_m1 );
           deliver_reward( task_interface, 1, reward_m2 );
-
-
         end
         if ( break_on_m1_first_choice || was_m1_correct )
           break
@@ -1215,43 +1276,68 @@ end
   res.choice_m2 = choice_m2;
   res.m1_looked_time = m1_looked_time;
 
-  res.m1_left_chunk = m1_left_chunk;
-  res.m1_right_chunk = m1_right_chunk;
-  res.m2_left_chunk = m2_left_chunk;
-  res.m2_right_chunk = m2_right_chunk;
-  
+  if ( use_more_than_2_targets )
+    res.m1_correct_chunk = m1_correct_target_index;
+    res.m2_correct_chunk = m2_correct_target_index;
+  else
+    res.m1_left_chunk = m1_left_chunk;
+    res.m1_right_chunk = m1_right_chunk;
+    res.m2_left_chunk = m2_left_chunk;
+    res.m2_right_chunk = m2_right_chunk;
+  end
+
   % -----
+
+  function tf = check_is_m1_correct(m1_choice)
+    if ( use_more_than_2_targets )
+      tf = m1_choice == m1_correct_target_index;
+    else
+      tf = (m1_choice==1 & swap_signaler_dir) | (m1_choice==2 & ~swap_signaler_dir);
+    end
+  end
+
+  function tf = check_is_m2_correct(m2_choice)
+    if ( use_more_than_2_targets )
+      tf = m2_choice == m2_correct_target_index;
+    else
+      tf = (m2_choice==2 & swap_signaler_dir) | (m2_choice==1 & ~swap_signaler_dir);
+    end
+  end
   
   function do_draw()
-    maybe_draw_gaze_cursors();
-
     if ( ~is_m2_timeout )
       signaler_rects = m2_rects();
 
-      if ( swap_signaler_dir )
+      if ( ~use_more_than_2_targets && swap_signaler_dir )
         signaler_rects = fliplr( signaler_rects );
       end
 
-      draw_texture( win_m2, targ1_im_m2, signaler_rects{1} );
-      draw_texture( win_m2, targ2_im_m2, signaler_rects{2} );
+      for i = 1:numel(im_m2s)
+        draw_texture( win_m2, im_m2s{i}, signaler_rects{i} );
+      end
     end
     
     if ( enable_m1_targets )
       actor_rects = m1_rects();
-      fill_oval( win_m1, [255, 255, 255], actor_rects{1} );
-      fill_oval( win_m1, [255, 255, 255], actor_rects{2} );
+      for i = 1:numel(actor_rects)
+        fill_oval( win_m1, [255, 255, 255], actor_rects{i} );
+      end
     end
+
+    maybe_draw_gaze_cursors();
     
     flip( win_m1, false );
     flip( win_m2, false );
+    if ( ~isempty(win_debug_m1) )
+      flip( win_debug_m1, false );
+    end
+    if ( ~isempty(win_debug_m2) )
+      flip( win_debug_m2, false );
+    end
   end
   
 
 %   left_right_locs = [[1,3]]
-
-
-
-
 
   function [left, right] = choose_chunks(num_chunks, min_space_between_targets)
     left = randi( num_chunks - min_space_between_targets );
@@ -1264,41 +1350,66 @@ end
     end
   end
   
-  function r = recenter_on_positions(r, left, right)
-    wl = diff( r{1}([1, 3]) );
-    wr = diff( r{2}([1, 3]) );
-    r{1}(1) = left - wl * 0.5;
-    r{1}(3) = left + wl * 0.5;
-    r{2}(1) = right - wr * 0.5;
-    r{2}(3) = right + wr * 0.5;
+  function r = recenter_on_positions(r, cxs)
+    assert( numel(cxs) == numel(r) );
+    for i = 1:numel(cxs)
+      wl = diff( r{i}([1, 3]) );
+      r{i}(1) = cxs(i) - wl * 0.5;
+      r{i}(3) = cxs(i) + wl * 0.5;
+    end
+  end
+
+  function cx = component_center_by_index(rect, w_frac, chunk, num_chunks)
+    width = rect(3) - rect(1);
+    off = width * (1 - w_frac) * 0.5;
+    cx = off + (chunk-1) / (num_chunks-1) * width * w_frac;
   end
   
   function [left, right] = left_right_components(rect, w_frac, left_chunk, right_chunk, num_chunks)
-    width = rect(3) - rect(1);
-    off = width * (1 - w_frac) * 0.5;
-    left = off + (left_chunk-1) / (num_chunks-1) * width * width_frac;
-    right = off + (right_chunk-1) / (num_chunks-1) * width * width_frac;
+    left = component_center_by_index( rect, w_frac, left_chunk, num_chunks );
+    right = component_center_by_index( rect, w_frac, right_chunk, num_chunks );
   end
 
   function r = m2_rects_remap()
-    r = rect_pad( lr_rects_remap(get(win_m2.Rect), [fix_circular_size, fix_circular_size]), circular_padding );
-    r = recenter_on_positions( r, m2_left, m2_right );
+    if ( use_more_than_2_targets )
+      r = rect_pad( centered_rect_remap(get(win_m2.Rect), fix_circular_size), circular_padding );
+      r = repmat( {r}, 1, numel(m2_cxs) );
+    else
+      r = rect_pad( lr_rects_remap(get(win_m2.Rect), [fix_circular_size, fix_circular_size]), circular_padding );
+    end
+    r = recenter_on_positions( r, m2_cxs );
   end
 
   function r = m1_rects_remap()
-    r = rect_pad( lr_rects_remap(get(win_m1.Rect), [fix_circular_size, fix_circular_size]), circular_padding );
-    r = recenter_on_positions( r, m1_left, m1_right );
+    if ( use_more_than_2_targets )
+      r = rect_pad( centered_rect_remap(get(win_m1.Rect), fix_circular_size), circular_padding );
+      r = repmat( {r}, 1, numel(m1_cxs) );
+    else
+      r = rect_pad( lr_rects_remap(get(win_m1.Rect), [fix_circular_size, fix_circular_size]), circular_padding );
+    end
+    r = recenter_on_positions( r, m1_cxs );
   end
   
   function r = m2_rects()
-    r = lr_rects( get(win_m2.Rect), [fix_circular_size, fix_circular_size] );
-    r = recenter_on_positions( r, m2_left, m2_right );
+    if ( use_more_than_2_targets )
+      r = centered_rect_maybe_remap( get(win_m2.Rect), fix_circular_size, false );
+      r = repmat( {r}, 1, numel(m2_cxs) );
+    else
+      r = lr_rects( get(win_m2.Rect), [fix_circular_size, fix_circular_size] );
+    end
+    r = recenter_on_positions( r, m2_cxs );
   end
   
   function r = m1_rects()
-    r = lr_rects( get(win_m1.Rect), [fix_circular_size, fix_circular_size] );
-    r = recenter_on_positions( r, m1_left, m1_right );
+    if ( use_more_than_2_targets )
+      r = centered_rect_maybe_remap( get(win_m1.Rect), fix_circular_size, false );
+      r = repmat( {r}, 1, numel(m1_cxs) );
+    else
+      r = lr_rects( get(win_m1.Rect), [fix_circular_size, fix_circular_size] );
+    end
+    r = recenter_on_positions( r, m1_cxs );
   end
+
   end
 
 
@@ -1405,6 +1516,14 @@ function m2_xy = get_m2_position()
   m2_xy = task_interface.get_m2_position( win_m2,enable_remap,center_remap_m2);
 end
 
+function s = get_m1_y_shift()
+  s = center_screen_m1(2) - win_m1.Center(2);
+end
+
+function s = get_m2_y_shift()
+  s = center_screen_m2(2) - win_m2.Center(2);
+end
+
 function r = m1_centered_rect(size)
  
   r = centered_rect( win_m1.Center, size );
@@ -1438,21 +1557,127 @@ function r = m2_centered_rect_remap(size)
 %   r = centered_rect( win_m2.Center, size );
 end
 
+function debug_win = get_debug_window_from_non_debug_window(win)
+  if ( win == win_m1 )
+    debug_win = win_debug_m1;
+  else
+    debug_win = win_debug_m2;
+  end
+end
+
+function [dst_x0, dst_y0, dst_x1, dst_y1] = do_rect_remap(src_win_rect, dst_win_rect, rect, force_center_y, pref_rel_size)
+  cx = mean( rect([1, 3]) );
+  cy = mean( rect([2, 4]) );
+
+  x01 = ( cx - src_win_rect(1) ) / diff( src_win_rect([1, 3]) );
+  y01 = ( cy - src_win_rect(2) ) / diff( src_win_rect([2, 4]) );
+
+  if ( force_center_y )
+    y01 = 0.5;
+  end
+
+  srcw = diff( rect([1, 3]) );
+  srch = diff( rect([2, 4]) );
+
+  dstw = diff( dst_win_rect([1, 3]) );
+  dsth = diff( dst_win_rect([2, 4]) );
+
+  if ( ~pref_rel_size )
+    dst_x0 = dstw * x01 - srcw * 0.5 + dst_win_rect(1);
+    dst_x1 = dst_x0 + srcw;
+    dst_y0 = dsth * y01 - srch * 0.5 + dst_win_rect(2);
+    dst_y1 = dst_y0 + srch;
+  else
+    w01 = srcw / diff(src_win_rect([1, 3]));
+    h01 = srch / diff(src_win_rect([2, 4]));
+
+    dst_x0 = dstw * x01 - w01 * 0.5 * dstw + dst_win_rect(1);
+    dst_x1 = dst_x0 + dstw * w01;
+    dst_y0 = dsth * y01 - h01 * 0.5 * dsth + dst_win_rect(2);
+    dst_y1 = dst_y0 + dsth * h01;
+  end
+end
+
+function r = remap_rect_for_debug_window(src_win, dst_win, rect)
+  if ( isempty(prefer_center_y) )
+    prefer_center_y = true;
+  end
+
+  if ( isempty(prefer_relative_sizes) )
+    prefer_relative_sizes = true;
+  end
+
+  src_win_rect = get( src_win.Rect );
+  dst_win_rect = get( dst_win.Rect );
+
+  [dst_x0, dst_y0, dst_x1, dst_y1] = do_rect_remap( src_win_rect, dst_win_rect, rect, prefer_center_y, prefer_relative_sizes );
+
+  dst_win_rect_small = dst_win_rect;
+  dst_win_rect_small(1) = dst_win_rect_small(1) + diff( dst_win_rect([1, 3]) ) * 0.125;
+  dst_win_rect_small(3) = dst_win_rect_small(3) - diff( dst_win_rect([1, 3]) ) * 0.125;
+  dst_win_rect_small(2) = dst_win_rect_small(2) + diff( dst_win_rect([2, 4]) ) * 0.125;
+  dst_win_rect_small(4) = dst_win_rect_small(4) - diff( dst_win_rect([2, 4]) ) * 0.125;
+
+  [dst_x0, dst_y0, dst_x1, dst_y1] = do_rect_remap( ...
+    dst_win_rect, dst_win_rect_small, [dst_x0, dst_y0, dst_x1, dst_y1], false, prefer_relative_sizes );
+
+  dst_x0 = max( min(dst_x0, dst_win_rect(3)), dst_win_rect(1) );
+  dst_x1 = max( min(dst_x1, dst_win_rect(3)), dst_win_rect(1) );
+  dst_y0 = max( min(dst_y0, dst_win_rect(4)), dst_win_rect(2) );
+  dst_y1 = max( min(dst_y1, dst_win_rect(4)), dst_win_rect(2) );
+  
+  r = [ dst_x0, dst_y0, dst_x1, dst_y1 ];
+end
 
 function draw_texture(win, im, rect)
   Screen( 'DrawTexture', win.WindowHandle, im.TextureHandle, [], rect );
+  dbg_win = get_debug_window_from_non_debug_window( win );
+  if ( ~isempty(dbg_win) )
+    Screen( 'DrawTexture', dbg_win.WindowHandle, im.TextureHandle, [] ...
+      , remap_rect_for_debug_window(win, dbg_win, rect) );
+  end
+end
+
+function fill_rect_debug(win, varargin)
+  dbg_win = get_debug_window_from_non_debug_window( win );
+  if ( ~isempty(dbg_win) )
+    % Screen('FillRect', windowPtr [,color] [,rect] )
+    varargin{2} = remap_rect_for_debug_window( win, dbg_win, varargin{2} );
+    Screen( 'FillRect', dbg_win.WindowHandle, varargin{:} );
+  end
 end
 
 function fill_rect(win, varargin)
   Screen( 'FillRect', win.WindowHandle, varargin{:} );
+  fill_rect_debug( win, varargin{:} );
+end
+
+function fill_oval_debug(win, varargin)
+  dbg_win = get_debug_window_from_non_debug_window( win );
+  if ( ~isempty(dbg_win) )
+    % Screen('FillRect', windowPtr [,color] [,rect] )
+    varargin{2} = remap_rect_for_debug_window( win, dbg_win, varargin{2} );
+    Screen( 'FillOval', dbg_win.WindowHandle, varargin{:} );
+  end
 end
 
 function fill_oval(win, varargin)
   Screen( 'FillOval', win.WindowHandle, varargin{:} );
+  fill_oval_debug( win, varargin{:} );
+end
+
+function frame_rect_debug(win, varargin)
+  dbg_win = get_debug_window_from_non_debug_window( win );
+  if ( ~isempty(dbg_win) )
+    % Screen('FillRect', windowPtr [,color] [,rect] )
+    varargin{2} = remap_rect_for_debug_window( win, dbg_win, varargin{2} );
+    Screen( 'FrameRect', dbg_win.WindowHandle, varargin{:} );
+  end
 end
 
 function frame_rect(win, varargin)  
   Screen( 'FrameRect', win.WindowHandle, varargin{:} );
+  frame_rect_debug( win, varargin{:} );
 end
 
 function maybe_draw_gaze_cursors()
@@ -1469,6 +1694,27 @@ function maybe_draw_gaze_cursors()
   if ( draw_m2_eye_roi )
     fill_oval( win_m1, [255, 255, 255], m2_eye_roi );
   end
+
+  curr_center_y = prefer_center_y;
+  curr_pref = prefer_relative_sizes;
+
+  prefer_center_y = false;
+  m1_p = get_m1_position();
+  m1_p(2) = m1_p(2) + get_m1_y_shift();
+  m2_p = get_m2_position();
+  m2_p(2) = m2_p(2) + get_m2_y_shift();
+  fill_oval_debug( win_m1, [255, 0, 255], centered_rect(m1_p, 50) );
+  fill_oval_debug( win_m2, [255, 0, 255], centered_rect(m2_p, 50) );
+
+  if ( ~isempty(m2_eye_roi) )
+    prefer_relative_sizes = true;
+    draw_roi = m2_eye_roi;
+    draw_roi([2, 4]) = m2_eye_roi([2, 4]) + get_m1_y_shift();
+    frame_rect_debug( win_m1, [255, 255, 255], draw_roi );
+    prefer_relative_sizes = curr_pref;
+  end
+
+  prefer_center_y = curr_center_y;
 end
 
 function r = wrap_draw(fs,maybeDrawWin1,maybeDrawWin2)
@@ -1491,6 +1737,12 @@ function r = wrap_draw(fs,maybeDrawWin1,maybeDrawWin2)
     end
     if maybeDrawWin2
       flip( win_m2, true );
+    end
+    if ( ~isempty(win_debug_m1) )
+      flip( win_debug_m1, false );
+    end
+    if ( ~isempty(win_debug_m2) )
+      flip( win_debug_m2, false );
     end
   end
   r = @do_draw;
@@ -1567,6 +1819,27 @@ function rs = rect_pad(rs, target_padding)
       r([3, 4]) = r([3, 4]) + target_padding(2) * 0.5;
     end
   end
+end
+
+function r = centered_rect_maybe_remap(win_rect, size, do_remap)
+  if ( nargin < 3 )
+    do_remap = false;
+  end
+
+  win_center = [ mean(win_rect([1, 3])), mean(win_rect([2, 4])) ];
+
+  if do_remap && enable_remap
+    win_center = center_remap_m1;
+  elseif enable_remap
+    win_center = center_screen_m1;
+  end
+  
+  lx = mean( [win_center(1), win_rect(1)] ) - lr_eccen;  
+  r = centered_rect( [lx, win_center(2)], size );
+end
+
+function r = centered_rect_remap(win_rect, size)
+  r = centered_rect_maybe_remap( win_rect, size, true );
 end
 
 function rs = lr_rects_remap(win_rect, size)

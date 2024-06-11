@@ -1,4 +1,4 @@
-function run_gf_pair_train_L_E_stage2_3()
+function run_gf_pair_train_L_E_stage2_3_control_part_1()
 
 cd 'C:\Users\setup2\source\setup2_ni\deps\network-events\Resources\Matlab';
 
@@ -41,7 +41,7 @@ proj_p = 'D:\tempData';
 bypass_trial_data = false ;    
 save_data = true;
 full_screens = true;
-max_num_trials = 500;
+max_num_trials = 100;
 rng("shuffle")
 draw_m2_eye_roi = false;
 draw_m1_gaze = false;
@@ -59,10 +59,10 @@ timing = struct();
 % 1 fixation with block rule
 enbale_fixation_with_block_rule = true;
 timing.initial_fixation_duration_m1 = 0.1;
-timing.initial_fixation_duration_m2 = 0.1;
+timing.initial_fixation_duration_m2 = 0.2;
 timing.initial_fixation_state_duration = 1.5;
 timing.initial_reward_m1 = 0.05;
-timing.initial_reward_m2 = 0.2;
+timing.initial_reward_m2 = 0.05;
 timing.init_reward_m1_m2 = 0.05;
 
 % 2 spatial rule
@@ -90,9 +90,9 @@ timing.gaze_delay_fixation_time = 0.20;
 % 4 spatial cue
 enable_spatial_cue = false;
 timing.spatial_cue_state_duration = 1.2;
-timing.spatial_cue_state_chooser_duration = 0.6;
+timing.spatial_cue_state_chooser_duration = 0.8;
 timing.spatial_cue_reward_m1 = 0.0;
-timing.spatial_cue_reward_m2 = 0.4;
+timing.spatial_cue_reward_m2 = 0.8;
 timing.spatial_cue_reward_m1_m2 = 0.00;
 
 
@@ -111,16 +111,13 @@ timing.spatial_cue_reward_m1_m2 = 0.00;
 
 % 4a gaze_triggered_actor_choice
 enable_gaze_triggered_actor_choice = false;
-gaze_triggered_actor_choice_break_upon_m2_wrong_choice = true;
-
-% timing.gaze_triggered_actor_choice_m2_choice_duration = 3; % @TODO
 timing.gaze_triggered_actor_choice_m2_choice_duration = 3; % @TODO
-timing.gaze_triggered_actor_choice_m1_remaining_time = 3;
+timing.gaze_triggered_actor_choice_m1_remaining_time = 5;
 timing.enable_gaze_triggered_actor_choice_time_m1 = 0.1; % @TODO
-timing.enable_gaze_triggered_actor_choice_time_m2 = 0.15; % @TODO
+timing.enable_gaze_triggered_actor_choice_time_m2 = 0.3; % @TODO
 timing.enable_gaze_triggered_actor_choice_m2_timeout_duration = 0.15;  % @TODO
-timing.enable_gaze_triggered_actor_choice_reward_m2 = 0.2; % @TODOr
-timing.enable_gaze_triggered_actor_choice_reward_m1 = 0.4; % @TODO
+timing.enable_gaze_triggered_actor_choice_reward_m2 = 0.15; % @TODOr
+timing.enable_gaze_triggered_actor_choice_reward_m1 = 0.3; % @TODO
 timing.enable_gaze_triggered_actor_choice_m1_face_fix_time = 0.1;
 timing.enable_gaze_triggered_actor_choice_break_on_m1_first_choice = true;
 
@@ -142,10 +139,10 @@ timing.fixation_delay_reward_m1_m2 = 0.0;
 
 % 6 actor response
 enable_actor_response = false;
-timing.actor_response_state_duration =1.5;%--1.6
-timing.actor_response_state_chooser_duration = 0.05;%--0.30
+timing.actor_response_state_duration =2;%--1.6
+timing.actor_response_state_chooser_duration = 0.10;%--0.30
 timing.actor_response_state_signaler_duration = 0.0;
-timing.actor_response_reward_m1 = 0.4;
+timing.actor_response_reward_m1 = 0.8;
 timing.actor_response_reward_m2 = 0;
 
 % 7 feedback & reward
@@ -167,7 +164,7 @@ player = audioplayer(y, Fs);
 
 % gaze delay block
 
-gaze_delay_block = 3;
+gaze_delay_block = 5;% 4 for block vision;
 if gaze_delay_block == 1
   enable_gaze_triggered_delay = true;
   enable_spatial_cue = true;
@@ -184,12 +181,20 @@ elseif gaze_delay_block == 3
   enable_spatial_cue = false;
   enable_fix_delay = false;
   enable_actor_response = false;
-elseif gaze_delay_block ==7
+elseif gaze_delay_block == 4
+  enable_remap = false;
   enable_gaze_triggered_actor_choice = false;
   enable_gaze_triggered_delay = false;
-  enable_spatial_cue = true;
+  enable_spatial_cue = false;
   enable_fix_delay = false;
-  enable_actor_response = true;
+  enable_actor_response = false;
+elseif gaze_delay_block == 5
+  enable_remap = true;
+  enable_gaze_triggered_actor_choice = false;
+  enable_gaze_triggered_delay = false;
+  enable_spatial_cue = false;
+  enable_fix_delay = false;
+  enable_actor_response = false;
 end
 
 % how long m1 and m2 can be overlapping in their target bounds before state
@@ -209,13 +214,13 @@ name_of_m2 ='M2_ephron';% 'Hitch';
   stimuli parameters
 %}
 
-fix_cross_visu_angl = 6;%deg
+fix_cross_visu_angl = 4;%deg
 visanglex = fix_cross_visu_angl;
 visangley = fix_cross_visu_angl;
 
-totdist_m1 = 300;%mm
-totdist_m2 = 310;%mm
-screen_height_left = 8.5;% cm after monitor down 
+totdist_m1 = 445;%mm
+totdist_m2 = 495;%mm
+screen_height_left = 8.8;% cm after monitor down 
 
 
 
@@ -233,7 +238,7 @@ error_square_size_m2 = fix_cross_size_m2;
 
 
 % fix_target_size = 150; % px
-fix_target_size_m1 = fix_cross_size_m1; % pxrr
+fix_target_size_m1 = fix_cross_size_m1; % px
 fix_target_size_m2 = fix_cross_size_m2; % p
 % error_square_size = 150;
 lr_eccen = 0; % px amount to shift left and right targets towards screen edges
@@ -241,7 +246,7 @@ lr_eccen_coll = [];
 
 
 % add +/- target_padding
-padding_angl = 4;
+padding_angl = 2.5;
 % padding_angl = 0;
 visanglex = padding_angl;
 visangley = padding_angl;
@@ -257,7 +262,7 @@ cross_padding_m2 = target_padding_m2;
 circular_padding = target_padding_m1;
 
 % sptial rule width
-spatial_rule_width = 5;
+spatial_rule_width = 10;
 
 %{
   reward parameters
@@ -283,7 +288,6 @@ if ( full_screens )
 else
   win_m1 = open_window( 'screen_index', 4, 'screen_rect', [0, 0, 400, 400] );
   win_m2 = open_window( 'screen_index', 4, 'screen_rect', [400, 0, 800, 400] );
-
 end
 
 %{
@@ -312,6 +316,11 @@ if enable_remap
   center_screen_m2 = [0.5*win_m2.Width,y_axis_screen*win_m2.Height];
   center_remap_m1 = [0.5*win_m1.Width,y_axis_remap*win_m1.Height];
   center_remap_m2 = [0.5*win_m2.Width,y_axis_remap*win_m2.Height];
+elseif gaze_delay_block ==4
+  center_screen_m1 = [0.5*win_m1.Width,0.75*win_m1.Height]; 
+  center_screen_m2 = [0.5*win_m2.Width,0.75*win_m2.Height];
+  center_remap_m1 = [0.5*win_m1.Width,0.75*win_m1.Height];
+  center_remap_m2 = [0.5*win_m2.Width,0.75*win_m2.Height];
 else
   center_screen_m1 = win_m1.Center;
   center_screen_m2 = win_m2.Center;
@@ -347,8 +356,8 @@ task_params.screen_height = screen_height_left;
 task_params.monitor_height = monitor_height;
 task_params.totdist_m1 = totdist_m1;
 task_params.totdist_m2 = totdist_m2;
-task_params.center_screen_m1 = center_remap_m1;
-task_params.center_screen_m2 = center_remap_m2;
+task_params.center_remap_m1 = center_remap_m1;
+task_params.center_remap_m2 = center_remap_m2;
 task_params.fix_cross_visu_angl = fix_cross_visu_angl;
 task_params.fix_cross_size_m1 = fix_cross_size_m1;
 task_params.fix_cross_size_m2 = fix_cross_size_m2;
@@ -554,7 +563,9 @@ while ( ~ptb.util.is_esc_down() && ...
       WaitSecs( max(timing.initial_reward_m1, timing.initial_reward_m2) + timing.waitSecs);
       deliver_reward( task_interface, 1, timing.init_reward_m1_m2);
       deliver_reward( task_interface, 0, timing.init_reward_m1_m2);
-
+%        play(player)
+%        WaitSecs(0.3)
+%        pause(player)
     end
   end
 
@@ -652,16 +663,12 @@ while ( ~ptb.util.is_esc_down() && ...
     if was_m1_correct
       m1_target_correct = m1_target_correct+1;
       m1_corr_curr = 1;
-%        play(player)
-%        WaitSecs(0.3)
-%        pause(player)
     else
       m1_corr_curr = 0;
     end
 
     if was_m2_correct
       m2_target_correct = m2_target_correct+1;
-
     end
 %     m2_target_correct = m2_target_correct+was_m2_correct;
     m1_target_correct/trial_inde
@@ -1088,11 +1095,11 @@ end
   %}
   num_chunks = 5;
   min_space_between_targets = 4;
-  width_frac = 0.8;
+  width_frac = 0.6;
   dist_idxs = [2,3,4];
   dist_idx=randperm(length(dist_idxs),1);
   dist_choo=dist_idxs(dist_idx);
-  dist_choo = 2;
+  
   if dist_choo == 4
     if rand()<1/2
       m2_left_chunk = targ_loca_dist_4(1);

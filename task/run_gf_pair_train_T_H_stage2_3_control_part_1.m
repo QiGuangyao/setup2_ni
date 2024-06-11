@@ -1,4 +1,4 @@
-function run_gf_pair_train_L_E_stage2_3()
+function run_gf_pair_train_T_H_stage2_3_control_part_1()
 
 cd 'C:\Users\setup2\source\setup2_ni\deps\network-events\Resources\Matlab';
 
@@ -10,10 +10,10 @@ try
 
 % eye roi target width and height padding
 useEyeROI = false;
-m2_eye_roi_padding_x = 100;
+m2_eye_roi_padding_x = 80;
 m2_eye_roi_padding_y = 100;
-m2_face_roi_padding_x = 0;
-m2_face_roi_padding_y = 0;
+m2_face_roi_padding_x = 50;
+m2_face_roi_padding_y = 50;
 if useEyeROI
   m2_eye_roi = get_eye_roi_from_calibration_file( ...
     m1_calib, m2_eye_roi_padding_x, m2_eye_roi_padding_y );
@@ -41,14 +41,14 @@ proj_p = 'D:\tempData';
 bypass_trial_data = false ;    
 save_data = true;
 full_screens = true;
-max_num_trials = 500;
-rng("shuffle")
+max_num_trials = 100;
+
 draw_m2_eye_roi = false;
 draw_m1_gaze = false;
 draw_m2_gaze = false;
 draw_m2_eye_cue = false;
 always_draw_spatial_rule_outline = true;
-enable_remap = true;
+enable_remap = false;
 verbose = false;
 
 %{
@@ -59,10 +59,11 @@ timing = struct();
 % 1 fixation with block rule
 enbale_fixation_with_block_rule = true;
 timing.initial_fixation_duration_m1 = 0.1;
-timing.initial_fixation_duration_m2 = 0.1;
+timing.initial_fixation_duration_m2 = 0.2;
 timing.initial_fixation_state_duration = 1.5;
+
 timing.initial_reward_m1 = 0.05;
-timing.initial_reward_m2 = 0.2;
+timing.initial_reward_m2 = 0.05;
 timing.init_reward_m1_m2 = 0.05;
 
 % 2 spatial rule
@@ -74,62 +75,43 @@ end
 timing.spatial_rule_fixation_duration = 0.15;
 timing.spatial_rule_state_duration = 0.5;
 timing.spatial_rule_reward_m1 = 0.15;
-timing.spatial_rule_reward_m2 = 0.25;
-timing.spatial_rule_reward_m1_m2 = 0.3;
+timing.spatial_rule_reward_m2 = 0.15;
+timing.spatial_rule_reward_m1_m2 = 0.2;
 
 
 % 3 gaze_delay
 enable_gaze_triggered_delay = true;
-timing.gaze_triggered_delay = 1.5;
-timing.gaze_delay_reward_m1 = 0.8;
+timing.gaze_triggered_delay = 1.8;
+timing.gaze_delay_reward_m1 = 0.4;
 timing.gaze_delay_reward_m2 = 0.0;
 timing.gaze_delay_reward_m1_m2 = 0.0;
-timing.gaze_delay_fixation_time = 0.20;
+timing.gaze_delay_fixation_time = 0.2;
 
 
 % 4 spatial cue
 enable_spatial_cue = false;
-timing.spatial_cue_state_duration = 1.2;
+timing.spatial_cue_state_duration = 1.5;
 timing.spatial_cue_state_chooser_duration = 0.6;
 timing.spatial_cue_reward_m1 = 0.0;
-timing.spatial_cue_reward_m2 = 0.4;
+timing.spatial_cue_reward_m2 = 0.5;
 timing.spatial_cue_reward_m1_m2 = 0.00;
-
-
-% % 4a gaze_triggered_actor_choice
-% enable_gaze_triggered_actor_choice = false;
-% break_on_m1_first_choice = true;
-% timing.enable_gaze_triggered_actor_choice_state_duration = 4; % @TODO
-% timing.enable_gaze_triggered_actor_choice_time_m1 = 0.1; % @TODO
-% timing.enable_gaze_triggered_actor_choice_time_m2 = 0.2; % @TODO
-% timing.enable_gaze_triggered_actor_choice_m2_timeout_duration = 0.1;  % @TODO
-% timing.enable_gaze_triggered_actor_choice_reward_m2 = 0.6; % @TODO
-% timing.enable_gaze_triggered_actor_choice_reward_m1 = 0.75; % @TODO
-% timing.enable_gaze_triggered_actor_choice_m1_face_fix_time = 0.15;
-% timing.enable_gaze_triggered_actor_choice_break_on_m1_first_choice = true;
-
 
 % 4a gaze_triggered_actor_choice
 enable_gaze_triggered_actor_choice = false;
-gaze_triggered_actor_choice_break_upon_m2_wrong_choice = true;
-
-% timing.gaze_triggered_actor_choice_m2_choice_duration = 3; % @TODO
-timing.gaze_triggered_actor_choice_m2_choice_duration = 3; % @TODO
+timing.gaze_triggered_actor_choice_m2_choice_duration = 2; % @TODO
 timing.gaze_triggered_actor_choice_m1_remaining_time = 3;
 timing.enable_gaze_triggered_actor_choice_time_m1 = 0.1; % @TODO
-timing.enable_gaze_triggered_actor_choice_time_m2 = 0.15; % @TODO
+timing.enable_gaze_triggered_actor_choice_time_m2 = 0.2; % @TODOrt
 timing.enable_gaze_triggered_actor_choice_m2_timeout_duration = 0.15;  % @TODO
 timing.enable_gaze_triggered_actor_choice_reward_m2 = 0.2; % @TODOr
 timing.enable_gaze_triggered_actor_choice_reward_m1 = 0.4; % @TODO
-timing.enable_gaze_triggered_actor_choice_m1_face_fix_time = 0.1;
+timing.enable_gaze_triggered_actor_choice_m1_face_fix_time = 0.2;
 timing.enable_gaze_triggered_actor_choice_break_on_m1_first_choice = true;
 
 
 targ_loca_dist_2 = [[2, 4]];
 targ_loca_dist_4 = [[1, 5]];
 targ_loca_dist_3 = [[1, 4];[2,5]];
-
-
 
 % 5 fixation_delay
 enable_fix_delay = false;
@@ -142,10 +124,10 @@ timing.fixation_delay_reward_m1_m2 = 0.0;
 
 % 6 actor response
 enable_actor_response = false;
-timing.actor_response_state_duration =1.5;%--1.6
-timing.actor_response_state_chooser_duration = 0.05;%--0.30
+timing.actor_response_state_duration =3;%--1.6
+timing.actor_response_state_chooser_duration = 0.1;%--0.30
 timing.actor_response_state_signaler_duration = 0.0;
-timing.actor_response_reward_m1 = 0.4;
+timing.actor_response_reward_m1 = 0.7;
 timing.actor_response_reward_m2 = 0;
 
 % 7 feedback & reward
@@ -155,19 +137,22 @@ timing.error_duration = 1.8; % timeout in case of failure to fixate
 timing.feedback_duration = 1;
 timing.waitSecs = 0.05;
 
+
 % sound 
-% note: media player: paly wn, 10 
+% note: media player: play wn, 10 
 % system: 50
 
 % Load audio data from a file
-[y, Fs] = audioread('C:/Users/setup2/source/setup2_ni/deps/network-events/Resources/Matlab/lowSound500hz.wav');
+[y, Fs] = audioread('lowSound500hz.wav');
 
 % Create an audioplayer object
 player = audioplayer(y, Fs);
 
-% gaze delay block
 
-gaze_delay_block = 3;
+
+
+% gaze delay block
+gaze_delay_block = 5;% 4 for block vision;
 if gaze_delay_block == 1
   enable_gaze_triggered_delay = true;
   enable_spatial_cue = true;
@@ -184,12 +169,20 @@ elseif gaze_delay_block == 3
   enable_spatial_cue = false;
   enable_fix_delay = false;
   enable_actor_response = false;
-elseif gaze_delay_block ==7
+elseif gaze_delay_block == 4
+  enable_remap = false;
   enable_gaze_triggered_actor_choice = false;
   enable_gaze_triggered_delay = false;
-  enable_spatial_cue = true;
+  enable_spatial_cue = false;
   enable_fix_delay = false;
-  enable_actor_response = true;
+  enable_actor_response = false;
+elseif gaze_delay_block == 5
+  enable_remap = true;
+  enable_gaze_triggered_actor_choice = false;
+  enable_gaze_triggered_delay = false;
+  enable_spatial_cue = false;
+  enable_fix_delay = false;
+  enable_actor_response = false;
 end
 
 % how long m1 and m2 can be overlapping in their target bounds before state
@@ -199,8 +192,8 @@ timing.overlap_duration_to_exit = nan;
 %{
 name of monkeys
 %}
-name_of_m1 ='M1_lynch';% 'lynch';%'M1_simu';
-name_of_m2 ='M2_ephron';% 'Hitch';
+name_of_m1 ='M1_tara';% 'lynch';%'M1_simu';
+name_of_m2 ='M2_hitch';% 'Hitch';
 %{
   stimuli parameters
 %}
@@ -209,14 +202,14 @@ name_of_m2 ='M2_ephron';% 'Hitch';
   stimuli parameters
 %}
 
-fix_cross_visu_angl = 6;%deg
+fix_cross_visu_angl = 5;%deg
 visanglex = fix_cross_visu_angl;
 visangley = fix_cross_visu_angl;
 
-totdist_m1 = 300;%mm
-totdist_m2 = 310;%mm
-screen_height_left = 8.5;% cm after monitor down 
 
+totdist_m1 = 490;%mm
+totdist_m2 = 520;%mm
+screen_height_left =8;% cm after monitor down 
 
 
 screenwidth = 338.66666667;%mm
@@ -233,15 +226,13 @@ error_square_size_m2 = fix_cross_size_m2;
 
 
 % fix_target_size = 150; % px
-fix_target_size_m1 = fix_cross_size_m1; % pxrr
+fix_target_size_m1 = fix_cross_size_m1; % px
 fix_target_size_m2 = fix_cross_size_m2; % p
 % error_square_size = 150;
-lr_eccen = 0; % px amount to shift left and right targets towards screen edges
-lr_eccen_coll = [];
-
+lr_eccen = 40; % px amount to shift left and right targets towards screen edges
 
 % add +/- target_padding
-padding_angl = 4;
+padding_angl = 3;
 % padding_angl = 0;
 visanglex = padding_angl;
 visangley = padding_angl;
@@ -257,7 +248,7 @@ cross_padding_m2 = target_padding_m2;
 circular_padding = target_padding_m1;
 
 % sptial rule width
-spatial_rule_width = 5;
+spatial_rule_width = 10;
 
 %{
   reward parameters
@@ -279,19 +270,21 @@ end
 % open windows before ni
 if ( full_screens )
   win_m1 = open_window( 'screen_index', 1, 'screen_rect', [] );% 4 for M1 
-  win_m2 = open_window( 'screen_index', 2, 'screen_rect', [] );% 1 for M2
+  win_m2 = open_window( 'screen_index', 3, 'screen_rect', [] );% 1 for M2
 else
   win_m1 = open_window( 'screen_index', 4, 'screen_rect', [0, 0, 400, 400] );
   win_m2 = open_window( 'screen_index', 4, 'screen_rect', [400, 0, 800, 400] );
-
 end
 
 %{
   remap target and stimuli
+
   monitor information
     Monitor: 1280 x 1024 pixels
     33.866666667 x 27.093333333 cm
 %}
+
+
 
 monitor_height = 27.093333333;% cm
 moitor_screen_edge_to_table = 2.2;%cm
@@ -312,6 +305,15 @@ if enable_remap
   center_screen_m2 = [0.5*win_m2.Width,y_axis_screen*win_m2.Height];
   center_remap_m1 = [0.5*win_m1.Width,y_axis_remap*win_m1.Height];
   center_remap_m2 = [0.5*win_m2.Width,y_axis_remap*win_m2.Height];
+elseif gaze_delay_block ==4
+  center_screen_m1 = [0.5*win_m1.Width,0.75*win_m1.Height]; 
+  center_screen_m2 = [0.5*win_m2.Width,0.75*win_m2.Height];
+  center_remap_m1 = [0.5*win_m1.Width,0.75*win_m1.Height];
+  center_remap_m2 = [0.5*win_m2.Width,0.75*win_m2.Height];
+%   center_screen_m1 = [640,9.654173228339249e+02];
+%   center_screen_m2 = [640,1.417322834663107e+02];
+%   center_remap_m1 = [640,9.654173228339249e+02];
+%   center_remap_m2 = [640,1.417322834663107e+02];
 else
   center_screen_m1 = win_m1.Center;
   center_screen_m2 = win_m2.Center;
@@ -347,13 +349,11 @@ task_params.screen_height = screen_height_left;
 task_params.monitor_height = monitor_height;
 task_params.totdist_m1 = totdist_m1;
 task_params.totdist_m2 = totdist_m2;
-task_params.center_screen_m1 = center_remap_m1;
-task_params.center_screen_m2 = center_remap_m2;
+task_params.center_remap_m1 = center_remap_m1;
+task_params.center_remap_m1 = center_remap_m1;
 task_params.fix_cross_visu_angl = fix_cross_visu_angl;
 task_params.fix_cross_size_m1 = fix_cross_size_m1;
 task_params.fix_cross_size_m2 = fix_cross_size_m2;
-task_params.fix_cross_jetter = 20;
-
 task_params.fix_target_size_m1 = fix_target_size_m1;
 task_params.fix_target_size_m2 = fix_target_size_m2;
 task_params.fix_circular_size = fix_circular_size;
@@ -393,14 +393,14 @@ task_params.m2_eye_roi = m2_eye_roi;
 task_params.gaze_delay_block = gaze_delay_block;
 task_params.m2_eye_roi_padding_x = m2_eye_roi_padding_x;
 task_params.m2_eye_roi_padding_y = m2_eye_roi_padding_y;
-task_params.m2_eye_roi_padding_x = m2_face_roi_padding_x;
-task_params.m2_eye_roi_padding_y = m2_face_roi_padding_y;
 task_params.useEyeROI = useEyeROI;
 task_params.screenres = screenres;
 task_params.screenwidth = screenwidth;
 
 task_params.lr_eccen = lr_eccen;
-task_params.test_room_light = 1;% 0: off; 1: on.
+task_params.sound_fre = 100;%hz
+task_params.sound_dur = 3;%hz
+
 
 if ( bypass_trial_data )
   trial_data = [];
@@ -424,9 +424,9 @@ cross_im = ptb.Image( win_m1, imread(fullfile(proj_p_image, 'images/cross.jpg'))
 % rotated_cross_im = ptb.Image( win_m1, imread(fullfile(proj_p, 'images/rotated_cross.jpg')));
 
 % rewarded (correct) target
-targ1_im_m2 = ptb.Image( win_m2, imread(fullfile(proj_p_image, 'images/rotated_rect.jpg')));
+targ1_im_m2 = ptb.Image( win_m2, imread(fullfile(proj_p_image, 'images/rect.jpg')));
 % opposite target
-targ2_im_m2 = ptb.Image( win_m2, imread(fullfile(proj_p_image, 'images/rect.jpg')));
+targ2_im_m2 = ptb.Image( win_m2, imread(fullfile(proj_p_image, 'images/rotated_rect.jpg')));
 % m1 targets
 % targ_im_m1 = ptb.Image( win_m1, imread(fullfile(proj_p, 'images/circle.jpg')));
 
@@ -450,52 +450,34 @@ m1_correct_gaze = 0;
 m1_target_correct = 0;
 m2_target_correct = 0;
 
-
 m1_ini_rw = timing.initial_reward_m1;
 m2_ini_rw = timing.initial_reward_m2;
 m1_m1_ini_rw = timing.init_reward_m1_m2;
-m1_corr_curr = 0;
+
 while ( ~ptb.util.is_esc_down() && ...
       proceed(task_interface) && ...
       (isempty(trial_data) || num_entries(trial_data) < max_num_trials) )
   drawnow;
   trial_inde = trial_inde+1
-  m1_corr_curr
   if ( isempty(trial_data) )
     trial_rec = TrialRecord();
   else
     trial_rec = push( trial_data );
   end
-  trial_desc = next( trial_generator );
-%   if m1_corr_curr ==1 || trial_inde == 0
-%     trial_inde = trial_inde+1
-%     
-%   else
-%     trial_inde = trial_inde+0
-%   end
 
+  trial_desc = next( trial_generator );
   if ( isempty(trial_desc) )
     break
   end
 
-  lr_eccen = randi([35 35]);
-  lr_eccen_coll = [lr_eccen_coll lr_eccen];
-
-  task_params.lr_eccen_coll = lr_eccen_coll;
-  % select gaze trial
   timing.initial_reward_m1 = m1_ini_rw;
   timing.initial_reward_m2 = m2_ini_rw;
   timing.init_reward_m1_m2 = m1_m1_ini_rw;
-  
-  trial_desc.is_gaze_trial = true; % true just for gaze trials at current stage
+
   trial_rec.trial_descriptor = trial_desc;
   trial_rec.gaze_triggered_delay = struct();
   trial_rec.trial_start = struct();
   trial_rec.trial_start.time = time_cb();
-  
-
-
-
   default_trigger( task_interface.sync_interface, 0 );
 
   %{
@@ -507,7 +489,6 @@ while ( ~ptb.util.is_esc_down() && ...
     if ( ~acq )
       % actor failed to look at signaler's eyes in time
       error_timeout_state( timing.error_duration,1,1);
-      state_iti();
       continue
 %     else
 %       state_iti();
@@ -549,20 +530,20 @@ while ( ~ptb.util.is_esc_down() && ...
     end
 
   
-    if acquired_m1 & acquired_m2
+    if acquired_m1 && acquired_m2
       ['both initial success']
       WaitSecs( max(timing.initial_reward_m1, timing.initial_reward_m2) + timing.waitSecs);
       deliver_reward( task_interface, 1, timing.init_reward_m1_m2);
       deliver_reward( task_interface, 0, timing.init_reward_m1_m2);
-
+%       play(player)
     end
   end
 
-%   pause(player)
   %{
     spatial rule
   %}
-
+  % select gaze trial
+  trial_desc.is_gaze_trial = true; % true just for gaze trials at current stage
   is_gaze_trial = trial_desc.is_gaze_trial;
   if (enable_spatial_rule) 
     [trial_rec.spatial_rule, acquired] = state_spatial_rule( is_gaze_trial );
@@ -643,35 +624,25 @@ while ( ~ptb.util.is_esc_down() && ...
 
 
   if ( enable_gaze_triggered_actor_choice )
-    
     [res, m1_ever_chose, m2_ever_chose,was_m1_correct,was_m2_correct] = state_gaze_triggered_actor_choice();
     trial_rec.gaze_triggered_actor_response = res;
+    pause(player)
     
     ['m1 target:';'m2 target:']
-    
     if was_m1_correct
       m1_target_correct = m1_target_correct+1;
-      m1_corr_curr = 1;
-%        play(player)
-%        WaitSecs(0.3)
-%        pause(player)
-    else
-      m1_corr_curr = 0;
     end
 
     if was_m2_correct
       m2_target_correct = m2_target_correct+1;
-
     end
 %     m2_target_correct = m2_target_correct+was_m2_correct;
     m1_target_correct/trial_inde
     m2_target_correct/trial_inde
 
-
-
-    if ( ~m1_ever_chose || ~m2_ever_chose || ~was_m1_correct || ~ was_m2_correct)
+    if ( ~m1_ever_chose || ~m2_ever_chose )
       % error
-      error_timeout_state( timing.error_duration,~was_m1_correct,~was_m2_correct );
+      error_timeout_state( timing.error_duration,~m1_ever_chose,~m2_ever_chose );
       state_iti();
       continue
     end
@@ -754,14 +725,10 @@ while ( ~ptb.util.is_esc_down() && ...
   %{
     iti
   %}
-%   'iti: '
-%   tic
+  'iti: '
+  tic
   state_iti();
-
-%   if ( 1 )
-%     state_iti();
-%   end
-%   toc
+  toc
 end
 
 catch err
@@ -1040,7 +1007,7 @@ function [res, signaler_choice] = state_spatial_cue(swap_signaler_dir, laser_ind
   end
 end
 
-  function [res, m1_ever_chose, m2_ever_chose,was_m1_correct,was_m2_correct] = state_gaze_triggered_actor_choice()
+function [res, m1_ever_chose, m2_ever_chose,was_m1_correct,was_m2_correct] = state_gaze_triggered_actor_choice()
   %{
   - m2's targets appear, can make any number of saccades back and forth
   - m1 looks to m2's eyes to trigger m1's targets appearing, after which 
@@ -1086,13 +1053,17 @@ end
   it M, then the right target is random in (M+2:N)
   
   %}
+  
   num_chunks = 5;
-  min_space_between_targets = 4;
-  width_frac = 0.8;
+  min_space_between_targets = 2;
+  width_frac = 0.75;
+  
+%   [m2_left_chunk, m2_right_chunk] = choose_chunks( num_chunks, min_space_between_targets );
+  
   dist_idxs = [2,3,4];
   dist_idx=randperm(length(dist_idxs),1);
   dist_choo=dist_idxs(dist_idx);
-  dist_choo = 2;
+  
   if dist_choo == 4
     if rand()<1/2
       m2_left_chunk = targ_loca_dist_4(1);
@@ -1115,6 +1086,7 @@ end
       m2_left_chunk = targ_loca_dist_3(1,1);
       m2_right_chunk = targ_loca_dist_3(1,2);
     elseif tempRand<2/4
+
       m2_left_chunk = targ_loca_dist_3(1,2);
       m2_right_chunk = targ_loca_dist_3(1,1);
     elseif tempRand<3/4
@@ -1126,10 +1098,15 @@ end
     end
   end
 
-%   [m2_left_chunk, m2_right_chunk] = choose_chunks( num_chunks, min_space_between_targets );
 
-  m1_right_chunk = (num_chunks - m2_left_chunk) + 1;
+
+
+%   m1_left_chunk = (num_chunks - m2_left_chunk) + 1;
+%   m1_right_chunk = (num_chunks - m2_right_chunk) + 1;
+
+
   m1_left_chunk = (num_chunks - m2_right_chunk) + 1;
+  m1_right_chunk = (num_chunks - m2_left_chunk) + 1;
   
   [m2_left, m2_right] = left_right_components( get(win_m2.Rect), width_frac, m2_left_chunk, m2_right_chunk, num_chunks );
   [m1_left, m1_right] = left_right_components( get(win_m1.Rect), width_frac, m1_left_chunk, m1_right_chunk, num_chunks );
@@ -1158,9 +1135,21 @@ end
         m2_ever_entered = true;
       end
       
+      % @NOTE: Index of *incorrect* choice, so opposite logic of below
+      incorr_index = 2;
+      if ( swap_signaler_dir )
+        incorr_index = 1;
+      end
+
+      if ( ~isempty(choice_m2.StateTrackers{incorr_index}.entered_ts) )
+        % if m2 enters into incorrect target, break
+        break
+      end
+
       if ( m2_chose )
         is_m2_timeout = true;
         
+
         m2_timer = tic();
         m2_ever_chose = true;
         was_m2_correct = (m2_choice==2 & swap_signaler_dir) | (m2_choice==1 & ~swap_signaler_dir);
@@ -1168,6 +1157,7 @@ end
         if ( ~triggered_m2_reward && was_m2_correct )
           deliver_reward( task_interface, 1, reward_m2 );
           triggered_m2_reward = true;
+%           play(player)
 
         end
       end
@@ -1181,7 +1171,7 @@ end
         m1_looked = true;
         enable_m1_targets = true;
         m1_looked_time = curr_t;
-
+%         pause(player)
         if ( 1 ) %  reset state clock to give m1 more time to choose
           start_t = time_cb();
           state_duration = m1_remaining_time;
@@ -1189,7 +1179,8 @@ end
       end
     else
       % if m1 looks at m2's face, then turn off sound.
-%       pause(player)
+      pause(player)
+
       [m1_chose, m1_choice] = update( ...
         choice_m1, m1_xy(1), m1_xy(2), curr_t, choice_time_m1, m1_rects_remap() );
 
@@ -1197,10 +1188,10 @@ end
       m1_ever_chose = m1_ever_chose || m1_chose;
 
       if ( m1_chose )
+%         pause(player)
         if ( was_m1_correct )
           deliver_reward( task_interface, 0, reward_m1 );
           deliver_reward( task_interface, 1, reward_m2 );
-
 
         end
         if ( break_on_m1_first_choice || was_m1_correct )
@@ -1209,6 +1200,7 @@ end
       end
     end
   end
+%   pause(player)
   
   res = struct();
   res.choice_m1 = choice_m1;
@@ -1245,20 +1237,12 @@ end
     flip( win_m1, false );
     flip( win_m2, false );
   end
-  
-
-%   left_right_locs = [[1,3]]
-
-
-
-
 
   function [left, right] = choose_chunks(num_chunks, min_space_between_targets)
     left = randi( num_chunks - min_space_between_targets );
     right = randi( [left + min_space_between_targets, num_chunks] );
     if ( 1 )
       while ( left == 3 || right == 3 )
-%       while ( left == 1 || right == 5 || left == 5 || right == 1|| left == 3 || right == 3) % for lynch, just choose inside ones.
         [left, right] = choose_chunks( num_chunks, min_space_between_targets );
       end
     end
@@ -1299,8 +1283,71 @@ end
     r = lr_rects( get(win_m1.Rect), [fix_circular_size, fix_circular_size] );
     r = recenter_on_positions( r, m1_left, m1_right );
   end
+end
+
+function res = state_fixation_delay(is_gaze_trial)
+  send_message( task_interface.npxi_events, 'fixation_delay/enter' );
+
+  abort_on_break = false;
+  loc_draw_cb = wrap_draw(...
+    {@do_draw, @maybe_draw_gaze_cursors},1,1);
+  [fs_m1, fs_m2] = joint_fixation2( ...
+    @time_cb, loc_draw_cb ...
+    , @() rect_pad(m1_centered_rect_remap(fix_cross_size_m1), cross_padding_m1), @get_m1_position ...
+    , @() rect_pad(m2_centered_rect_remap(fix_cross_size_m1), cross_padding_m2), @get_m2_position ...
+    , @local_update ...
+    , timing.fixation_delay_duration...
+    , timing.fixation_delay_duration...
+    , timing.fixation_delay_state_duration ...
+    , abort_on_break ...
+    , 'm1_every_acq_callback', @deliver_reward_m1_cb ...
+    , 'm2_every_acq_callback', @deliver_reward_m2_cb ...
+    , 'overlap_duration_to_exit', timing.overlap_duration_to_exit ...
+  );
+  
+  res = struct();
+  res.fixation_state_m1 = fs_m1;
+  res.fixation_state_m2 = fs_m2;
+  acquired_m1 = fs_m1.ever_acquired;
+  acquired_m2 = fs_m2.ever_acquired;
+  acquired = fs_m1.acquired && fs_m2.acquired;
+
+  function deliver_reward_m1_cb()
+%     WaitSecs( 0.3 );
+    deliver_reward(task_interface, 0, timing.fixation_delay_reward_m1);
   end
 
+  function deliver_reward_m2_cb()
+%     WaitSecs( 0.3 );  
+    deliver_reward(task_interface, 1, timing.fixation_delay_reward_m2);
+  end
+
+  function do_draw()
+    draw_fixation_crosses();
+    if ( always_draw_spatial_rule_outline )
+      draw_spatial_rule_outline( win_m1, is_gaze_trial );
+    end
+  end
+
+%   [fs_m1, fs_m2] = static_fixation2( ...
+%     @time_cb, loc_draw_cb ...
+%     , @() rect_pad(centered_rect(center_remap_m1,[100, 100]), target_padding), @get_m1_position ...
+%     , @() rect_pad(centered_rect(center_remap_m2, [100, 100]), target_padding), @get_m2_position ...
+%     , @local_update, timing.fixation_delay_duration ...
+%     , timing.fixation_delay_duration, abort_on_break );
+% 
+% 
+% %   [fs_m1, fs_m2] = static_fixation2( ...
+% %     @time_cb, loc_draw_cb ...
+% %     , @() centered_rect(win_m1.Center, [100, 100]), @get_m1_position ...
+% %     , @() centered_rect(win_m2.Center, [100, 100]), @get_m2_position ...
+% %     , @local_update, timing.fixation_delay_duration ...
+% %     , timing.fixation_delay_duration, abort_on_break );
+% 
+%   res = struct();
+%   res.fixation_state_m1 = fs_m1;
+%   res.fixation_state_m2 = fs_m2;
+end
 
 function [res, actor_resp_choice] = state_actor_response(is_gaze_trial)
   send_message( task_interface.npxi_events, 'actor_response/enter' );
