@@ -1,4 +1,4 @@
-function [fs_m1, fs_m2, achieved_required_overlap] = joint_fixation2(...
+function [fs_m1, fs_m2, achieved_required_overlap,achieved_required_interval] = joint_fixation4(...
     time_cb, draw_cb ...
   , targ_loc_cb1, pos_cb1 ...
   , targ_loc_cb2, pos_cb2, loop_cb ...
@@ -22,7 +22,7 @@ overlap_dur = params.overlap_duration_to_exit;
 
 entry_t = time_cb();
 achieved_required_overlap = false;
-
+achieved_required_interval = false;
 fs_m1 = FixationStateTracker( entry_t ...
   , 'first_acquire_callback', params.m1_first_acq_callback ...
   , 'every_acquire_callback', params.m1_every_acq_callback ...
@@ -31,6 +31,13 @@ fs_m2 = FixationStateTracker( entry_t ...
   , 'first_acquire_callback', params.m2_first_acq_callback ...
   , 'every_acquire_callback', params.m2_every_acq_callback ...
 );
+
+
+
+% fs_m1_m2 = FixationStateTracker( entry_t ...
+%   , 'first_acquire_callback', params.m1_m2_first_acq_callback ...
+%   , 'every_acquire_callback', params.m1_m2_every_acq_callback ...
+% );
 
 
 while ( time_cb() - entry_t < state_time && ~(fs_m1.ever_acquired && fs_m2.ever_acquired) )
@@ -59,6 +66,18 @@ while ( time_cb() - entry_t < state_time && ~(fs_m1.ever_acquired && fs_m2.ever_
       break
     end
   end
+
+  if ( ~isnan(m1_info.ib_entry_t) && ~isnan(m2_info.ib_entry_t) )
+    % overlap duration test
+    latest_t = max( m1_info.ib_entry_t, m2_info.ib_entry_t );
+    if ( ~isnan(overlap_dur) && t - latest_t >= overlap_dur )
+      achieved_required_interval = true;
+      break
+    end
+  end
+
+
+
   
   % 10/20/2023 GY
   if ( abort_on_break && (m1_broke && m2_broke) )

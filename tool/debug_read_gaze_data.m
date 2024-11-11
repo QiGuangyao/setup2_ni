@@ -1,4 +1,4 @@
-data_file = 'C:\Users\setup2\source\setup2_gf\data\03-Oct-2023 14_31_44\ni.bin';
+data_file = 'D:\tempData\data\20-Jun-2024 15_51_45\ni.bin';
 
 samps = read_ni_data( data_file );
 

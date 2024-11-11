@@ -17,17 +17,17 @@ classdef MyTrialGenerator < handle
 %       % shuffle
       
 %       rand
-      temp_trial = [zeros( nt/10*5, 1 );ones( nt/10*5, 1 )];
-      obj.signaler_target_dirs = temp_trial(randperm(length(temp_trial)));
+%       temp_trial = [zeros( nt/10*5, 1 );ones( nt/10*5, 1 )];
+%       obj.signaler_target_dirs = temp_trial(randperm(length(temp_trial)));
 
-%       obj.signaler_target_dirs = [randi( 2, nt/10, 1 ) - 1; zeros( nt-nt/10, 1 )];
-%       obj.signaler_target_dirs = obj.signaler_target_dirs(randperm(length(obj.signaler_target_dirs)));
+%         obj.signaler_target_dirs = [randi( 2, nt/10, 1 ) - 1; zeros( nt-nt/10, 1 )];
+        obj.signaler_target_dirs = obj.signaler_target_dirs(randperm(length(obj.signaler_target_dirs)));
 
 %       always left
-%       obj.signaler_target_dirs = zeros( nt, 1 );
+%         obj.signaler_target_dirs = zeros( nt, 1 );
 
-      % always right
-%       obj.signaler_target_dirs = ones( nt, 1 );
+%       always right
+%         obj.signaler_target_dirs = ones( nt, 1 );
 % 
     end
 
@@ -36,7 +36,7 @@ classdef MyTrialGenerator < handle
 %       td.is_gaze_trial = obj.trial_types(obj.trial_index) == 1;
       td.is_gaze_trial = true;% for gaze follwing trial
       td.signaler_target_dir = obj.signaler_target_dirs(obj.trial_index);
-      td.laser_index = double( rand() > 0.5 );
+      td.laser_index = td.signaler_target_dir;%double( rand() > 0.5 );
       td.prob_gaze_triggered_delay = 1;
       td.state_spatial_cue_with_response_signaler_timeout = 0;
       td.state_spatial_cue_with_response_actor_timeout = 0.8;

@@ -40,7 +40,7 @@ proj_p = fileparts( which(mfilename) );
 bypass_trial_data = false ;    
 save_data = true;
 full_screens = true;
-max_num_trials = max_num_trials;
+
 
 draw_m2_eye_roi = false;
 draw_m1_gaze = false;

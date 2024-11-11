@@ -12,8 +12,8 @@ try
 useEyeROI = false;
 m2_eye_roi_padding_x = 100;
 m2_eye_roi_padding_y = 100;
-m2_face_roi_padding_x = 0;
-m2_face_roi_padding_y = 0;
+m2_face_roi_padding_x = 80;
+m2_face_roi_padding_y = 80;
 if useEyeROI
   m2_eye_roi = get_eye_roi_from_calibration_file( ...
     m1_calib, m2_eye_roi_padding_x, m2_eye_roi_padding_y );
@@ -41,21 +41,21 @@ proj_p = 'D:\tempData';
 bypass_trial_data = false ;    
 save_data = true;
 full_screens = true;
-max_num_trials = 500;
+max_num_trials = 100;
 rng("shuffle")
 draw_m2_eye_roi = false;
-draw_m1_gaze = true;
-draw_m2_gaze = true;
+draw_m1_gaze = false;
+draw_m2_gaze = false;
 draw_m2_eye_cue = false;
 always_draw_spatial_rule_outline = true;
 enable_remap = true;
 verbose = false;
 % setup3
-win_index_m1 = 3;
-win_index_m2 = 2;
-% % setup2
-% win_index_m1 = 1;
+% win_index_m1 = 3;
 % win_index_m2 = 2;
+% % setup2
+win_index_m1 = 1;
+win_index_m2 = 2;
 
 %{
   timing parameters
@@ -65,10 +65,10 @@ timing = struct();
 % 1 fixation with block rule
 enbale_fixation_with_block_rule = true;
 timing.initial_fixation_duration_m1 = 0.1;
-timing.initial_fixation_duration_m2 = 0.1;
+timing.initial_fixation_duration_m2 = 0.2;
 timing.initial_fixation_state_duration = 1.5;
 timing.initial_reward_m1 = 0.05;
-timing.initial_reward_m2 = 0.2;
+timing.initial_reward_m2 = 0.05;
 timing.init_reward_m1_m2 = 0.05;
 
 % 2 spatial rule
@@ -109,7 +109,7 @@ timing.spatial_cue_reward_m1_m2 = 0.00;
 % timing.enable_gaze_triggered_actor_choice_time_m1 = 0.1; % @TODO
 % timing.enable_gaze_triggered_actor_choice_time_m2 = 0.2; % @TODO
 % timing.enable_gaze_triggered_actor_choice_m2_timeout_duration = 0.1;  % @TODO
-% timing.enable_gaze_triggered_actor_choice_reward_m2 = 0.6; % @TODO
+% timing.enable_gaze_triggered_actor_choice_reward_m2 = 0.6; % @TODOenable_gaze_triggered_actor_choice_m1_face_fix_time
 % timing.enable_gaze_triggered_actor_choice_reward_m1 = 0.75; % @TODO
 % timing.enable_gaze_triggered_actor_choice_m1_face_fix_time = 0.15;
 % timing.enable_gaze_triggered_actor_choice_break_on_m1_first_choice = true;
@@ -120,13 +120,13 @@ enable_gaze_triggered_actor_choice = false;
 gaze_triggered_actor_choice_break_upon_m2_wrong_choice = true;
 
 % timing.gaze_triggered_actor_choice_m2_choice_duration = 3; % @TODO
-timing.gaze_triggered_actor_choice_m2_choice_duration = 3; % @TODO
+timing.gaze_triggered_actor_choice_m2_choice_duration = 4; % @TODO
 timing.gaze_triggered_actor_choice_m1_remaining_time = 3;
 timing.enable_gaze_triggered_actor_choice_time_m1 = 0.1; % @TODO
 timing.enable_gaze_triggered_actor_choice_time_m2 = 0.15; % @TODO
 timing.enable_gaze_triggered_actor_choice_m2_timeout_duration = 0.15;  % @TODO
 timing.enable_gaze_triggered_actor_choice_reward_m2 = 0.2; % @TODOr
-timing.enable_gaze_triggered_actor_choice_reward_m1 = 0.4; % @TODO
+timing.enable_gaze_triggered_actor_choice_reward_m1 = 0.8; % @TODO
 timing.enable_gaze_triggered_actor_choice_m1_face_fix_time = 0.1;
 timing.enable_gaze_triggered_actor_choice_break_on_m1_first_choice = true;
 
@@ -215,13 +215,13 @@ name_of_m2 ='M2_ephron';% 'Hitch';
   stimuli parameters
 %}
 
-fix_cross_visu_angl = 6;%deg
+fix_cross_visu_angl =5;%deg
 visanglex = fix_cross_visu_angl;
 visangley = fix_cross_visu_angl;
 
-totdist_m1 = 300;%mm
-totdist_m2 = 310;%mm
-screen_height_left = 8.5;% cm after monitor down 
+totdist_m1 = 440;%mm
+totdist_m2 = 510;%mm
+screen_height_left = 10.3;% cm after monitor down 
 
 
 
@@ -247,7 +247,7 @@ lr_eccen_coll = [];
 
 
 % add +/- target_padding
-padding_angl = 4;
+padding_angl = 6;
 % padding_angl = 0;
 visanglex = padding_angl;
 visangley = padding_angl;
@@ -1094,13 +1094,13 @@ end
   %}
   num_chunks = 5;
   min_space_between_targets = 4;
-  width_frac = 0.8;
+  width_frac = 0.5;
   dist_idxs = [2,3,4];
   dist_idx=randperm(length(dist_idxs),1);
   dist_choo=dist_idxs(dist_idx);
-  dist_choo = 2;
+  dist_choo = 4;
   if dist_choo == 4
-    if rand()<1/2
+    if rand()<0
       m2_left_chunk = targ_loca_dist_4(1);
       m2_right_chunk = targ_loca_dist_4(2);
     else

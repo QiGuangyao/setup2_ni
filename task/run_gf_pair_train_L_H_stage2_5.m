@@ -1,4 +1,4 @@
-function run_gf_pair_train_L_E_stage2_4()
+function run_gf_pair_train_L_H_stage2_5()
 
 global prefer_center_y;
 global prefer_relative_sizes;
@@ -18,8 +18,8 @@ try
 useEyeROI = false;
 m2_eye_roi_padding_x = 100;
 m2_eye_roi_padding_y = 100;
-m2_face_roi_padding_x =100;
-m2_face_roi_padding_y =100;
+m2_face_roi_padding_x = 100;
+m2_face_roi_padding_y = 100;
 if useEyeROI
   m2_eye_roi = get_eye_roi_from_calibration_file( ...
     m1_calib, m2_eye_roi_padding_x, m2_eye_roi_padding_y );
@@ -64,8 +64,8 @@ timing = struct();
 %%% stages of the task
 % 1 fixation with block rule
 enbale_fixation_with_block_rule = true;
-timing.initial_fixation_duration_m1 = 0.1;
-timing.initial_fixation_duration_m2 = 0.15;
+timing.initial_fixation_duration_m1 = 0.05;
+timing.initial_fixation_duration_m2 = 0.25;
 timing.initial_fixation_state_duration = 1.5;
 timing.initial_reward_m1 = 0.05;
 timing.initial_reward_m2 = 0.05;
@@ -125,26 +125,11 @@ timing.gaze_triggered_actor_choice_m1_remaining_time =3;
 timing.enable_gaze_triggered_actor_choice_time_m1 = 0.05; % @TODO
 timing.enable_gaze_triggered_actor_choice_time_m2 = 0.2; % @TODO
 timing.enable_gaze_triggered_actor_choice_m2_timeout_duration = 0.15;  % @TODO
-timing.enable_gaze_triggered_actor_choice_reward_m2 = 0.2; % @TODO
+timing.enable_gaze_triggered_actor_choice_reward_m2 = 0.25; % @TODO
 timing.enable_gaze_triggered_actor_choice_reward_m1 = 0.8; % @TODO
-timing.enable_gaze_triggered_actor_choice_m1_face_fix_time = 0.1;
+timing.enable_gaze_triggered_actor_choice_m1_face_fix_time = 0.05;
 timing.enable_gaze_triggered_actor_choice_break_on_m1_first_choice = true;
 
-% make the m1'gaze to face time longer and variable
- timing.enable_gaze_triggered_actor_choice_m1_face_fix_time = 0.05;
- timing.enable_gaze_triggered_actor_choice_m1_face_fix_time_low_bound = 0.1;
- timing.enable_gaze_triggered_actor_choice_m1_face_fix_time_up_bound = 0.25;
-
-
-% make the m1 wait randomly for showing its targets
- timing.m1_wait_time = 0;
- timing.m1_wait_time_low_bound = 0.15;
- timing.m1_wait_time_up_bound = 0.25;
-
-% generate a random number between [a,b]:
-% r = a + (b-a)*rand();
-
-timing.enable_gaze_triggered_actor_choice_break_on_m1_first_choice = true;
 
 targ_loca_dist_2 = [[2, 4]];
 targ_loca_dist_4 = [[1, 5]];
@@ -188,7 +173,7 @@ player = audioplayer(y, Fs);
 
 % gaze delay block
 
-gaze_delay_block = 3;
+gaze_delay_block = 9;
 if gaze_delay_block == 1
   enable_gaze_triggered_delay = true;
   enable_spatial_cue = true;
@@ -211,6 +196,18 @@ elseif gaze_delay_block ==7
   enable_spatial_cue = true;
   enable_fix_delay = false;
   enable_actor_response = true;
+elseif gaze_delay_block ==8
+  enable_gaze_triggered_actor_choice = false;
+  enable_gaze_triggered_delay = false;
+  enable_spatial_cue = false;
+  enable_fix_delay = false;
+  enable_actor_response = false;
+elseif gaze_delay_block ==9
+  enable_gaze_triggered_actor_choice = false;
+  enable_gaze_triggered_delay = false;
+  enable_spatial_cue = true;
+  enable_fix_delay = false;
+  enable_actor_response = true;
 end
 
 % how long m1 and m2 can be overlapping in their target bounds before state
@@ -221,7 +218,7 @@ timing.overlap_duration_to_exit = nan;
 name of monkeys
 %}
 name_of_m1 ='M1_lynch';% 'lynch';%'M1_simu';
-name_of_m2 ='M2_ephron';% 'Hitch';
+name_of_m2 ='M2_hitch';% 'Hitch';
 %{
   stimuli parameters
 %}
@@ -230,13 +227,13 @@ name_of_m2 ='M2_ephron';% 'Hitch';
   stimuli parameters
 %}
 
-fix_cross_visu_angl =6;%deg
+fix_cross_visu_angl =7;%deg
 visanglex = fix_cross_visu_angl;
 visangley = fix_cross_visu_angl;
 
-totdist_m1 = 430;%mm
-totdist_m2 = 510;%mm
-screen_height_left = 9;% cm after monitor down 
+totdist_m1 = 460;%mm
+totdist_m2 = 515;%mm
+screen_height_left = 8.5;% cm after monitor down 
 
 
 
@@ -262,7 +259,7 @@ lr_eccen_coll = [];
 
 
 % add +/- target_padding
-padding_angl = 6;
+padding_angl =4;
 % padding_angl = 0;
 visanglex = padding_angl;
 visangley = padding_angl;
@@ -458,9 +455,9 @@ cross_im = ptb.Image( win_m1, imread(fullfile(proj_p_image, 'images/cross.jpg'))
 % rotated_cross_im = ptb.Image( win_m1, imread(fullfile(proj_p, 'images/rotated_cross.jpg')));
 
 % rewarded (correct) target
-targ1_im_m2 = ptb.Image( win_m2, imread(fullfile(proj_p_image, 'images/rotated_rect.jpg')));
+targ1_im_m2 = ptb.Image( win_m2, imread(fullfile(proj_p_image, 'images/rect.jpg')));
 % opposite target
-targ2_im_m2 = ptb.Image( win_m2, imread(fullfile(proj_p_image, 'images/rect.jpg')));
+targ2_im_m2 = ptb.Image( win_m2, imread(fullfile(proj_p_image, 'images/rotated_rect.jpg')));
 % m1 targets
 % targ_im_m1 = ptb.Image( win_m1, imread(fullfile(proj_p, 'images/circle.jpg')));
 
@@ -573,7 +570,7 @@ while ( ~ptb.util.is_esc_down() && ...
 % %     if ((~acquired_m2))
 %       % error
 % %       tic
-      error_timeout_state( timing.error_duration,1,1, ~(acquired_m1&&acquired_m2), ~acquired_m2);
+      error_timeout_state( timing.error_duration,1,1, ~(acquired_m1), ~acquired_m2);
       state_iti();
 % %       toc
       continue
@@ -1116,7 +1113,7 @@ end
   enable_m1_targets = false;
   m1_looked_time = nan;
 
-  use_more_than_2_targets = true;
+  use_more_than_2_targets = false;
   num_targets = 4;
     
   choice_m1 = ChoiceTracker( start_t, num_targets );

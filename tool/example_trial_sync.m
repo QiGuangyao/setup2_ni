@@ -25,7 +25,7 @@ ni_mat_t = transform_ni_clock_to_matlab_clock( ...
 
 %%
 
-desired_trial = td.saveable_data.trials(1);
+desired_trial = td.saveable_data.trials(2);
 fs_m1 = desired_trial.fixation_with_block_rule.fixation_state_m1;
 [~, ind] = min( abs(fs_m1.acquired_ts(1) - ni_mat_t) );
 

@@ -12,8 +12,8 @@ try
 useEyeROI = false;
 m2_eye_roi_padding_x = 100;
 m2_eye_roi_padding_y = 100;
-m2_face_roi_padding_x = 0;
-m2_face_roi_padding_y = 0;
+m2_face_roi_padding_x = 80;
+m2_face_roi_padding_y = 80;
 if useEyeROI
   m2_eye_roi = get_eye_roi_from_calibration_file( ...
     m1_calib, m2_eye_roi_padding_x, m2_eye_roi_padding_y );
@@ -42,7 +42,7 @@ bypass_trial_data = false ;
 save_data = true;
 full_screens = true;
 max_num_trials = 100;
-
+rng("shuffle")
 draw_m2_eye_roi = false;
 draw_m1_gaze = false;
 draw_m2_gaze = false;
@@ -58,10 +58,9 @@ timing = struct();
 %%% stages of the task
 % 1 fixation with block rule
 enbale_fixation_with_block_rule = true;
-timing.initial_fixation_duration_m1 = 0.1;
-timing.initial_fixation_duration_m2 = 0.05;
-timing.initial_fixation_state_duration = 2;
-
+timing.initial_fixation_duration_m1 = 0.2;
+timing.initial_fixation_duration_m2 = 0.2;
+timing.initial_fixation_state_duration = 1.5;
 timing.initial_reward_m1 = 0.05;
 timing.initial_reward_m2 = 0.05;
 timing.init_reward_m1_m2 = 0.05;
@@ -75,36 +74,53 @@ end
 timing.spatial_rule_fixation_duration = 0.15;
 timing.spatial_rule_state_duration = 0.5;
 timing.spatial_rule_reward_m1 = 0.15;
-timing.spatial_rule_reward_m2 = 0.15;
-timing.spatial_rule_reward_m1_m2 = 0.2;
+timing.spatial_rule_reward_m2 = 0.25;
+timing.spatial_rule_reward_m1_m2 = 0.3;
 
 
 % 3 gaze_delay
 enable_gaze_triggered_delay = true;
-timing.gaze_triggered_delay = 1.8;
-timing.gaze_delay_reward_m1 = 0.4;
+timing.gaze_triggered_delay = 1.5;
+timing.gaze_delay_reward_m1 = 0.8;
 timing.gaze_delay_reward_m2 = 0.0;
 timing.gaze_delay_reward_m1_m2 = 0.0;
-timing.gaze_delay_fixation_time = 0.2;
+timing.gaze_delay_fixation_time = 0.20;
 
 
 % 4 spatial cue
 enable_spatial_cue = false;
-timing.spatial_cue_state_duration = 1.5;
+timing.spatial_cue_state_duration = 1.2;
 timing.spatial_cue_state_chooser_duration = 0.6;
 timing.spatial_cue_reward_m1 = 0.0;
-timing.spatial_cue_reward_m2 = 0.5;
+timing.spatial_cue_reward_m2 = 0.4;
 timing.spatial_cue_reward_m1_m2 = 0.00;
+
+
+% % 4a gaze_triggered_actor_choice
+% enable_gaze_triggered_actor_choice = false;
+% break_on_m1_first_choice = true;
+% timing.enable_gaze_triggered_actor_choice_state_duration = 4; % @TODO
+% timing.enable_gaze_triggered_actor_choice_time_m1 = 0.1; % @TODO
+% timing.enable_gaze_triggered_actor_choice_time_m2 = 0.2; % @TODO
+% timing.enable_gaze_triggered_actor_choice_m2_timeout_duration = 0.1;  % @TODO
+% timing.enable_gaze_triggered_actor_choice_reward_m2 = 0.6; % @TODO
+% timing.enable_gaze_triggered_actor_choice_reward_m1 = 0.75; % @TODO
+% timing.enable_gaze_triggered_actor_choice_m1_face_fix_time = 0.15;
+% timing.enable_gaze_triggered_actor_choice_break_on_m1_first_choice = true;
+
 
 % 4a gaze_triggered_actor_choice
 enable_gaze_triggered_actor_choice = false;
-timing.gaze_triggered_actor_choice_m2_choice_duration = 2; % @TODO
-timing.gaze_triggered_actor_choice_m1_remaining_time = 3;
-timing.enable_gaze_triggered_actor_choice_time_m1 = 0.1; % @TODO
-timing.enable_gaze_triggered_actor_choice_time_m2 = 0.05; % @TODOrt
-timing.enable_gaze_triggered_actor_choice_m2_timeout_duration = 0.1;  % @TODO
-timing.enable_gaze_triggered_actor_choice_reward_m2 = 0.1; % @TODOr
-timing.enable_gaze_triggered_actor_choice_reward_m1 = 0.4; % @TODO
+gaze_triggered_actor_choice_break_upon_m2_wrong_choice = true;
+
+% timing.gaze_triggered_actor_choice_m2_choice_duration = 3; % @TODO
+timing.gaze_triggered_actor_choice_m2_choice_duration = 4; % @TODO
+timing.gaze_triggered_actor_choice_m1_remaining_time =3;
+timing.enable_gaze_triggered_actor_choice_time_m1 = 0.05; % @TODO
+timing.enable_gaze_triggered_actor_choice_time_m2 = 0.2; % @TODO
+timing.enable_gaze_triggered_actor_choice_m2_timeout_duration = 0.15;  % @TODO
+timing.enable_gaze_triggered_actor_choice_reward_m2 = 0.25; % @TODO
+timing.enable_gaze_triggered_actor_choice_reward_m1 = 0.8; % @TODO
 timing.enable_gaze_triggered_actor_choice_m1_face_fix_time = 0.1;
 timing.enable_gaze_triggered_actor_choice_break_on_m1_first_choice = true;
 
@@ -112,6 +128,8 @@ timing.enable_gaze_triggered_actor_choice_break_on_m1_first_choice = true;
 targ_loca_dist_2 = [[2, 4]];
 targ_loca_dist_4 = [[1, 5]];
 targ_loca_dist_3 = [[1, 4];[2,5]];
+
+
 
 % 5 fixation_delay
 enable_fix_delay = false;
@@ -124,10 +142,10 @@ timing.fixation_delay_reward_m1_m2 = 0.0;
 
 % 6 actor response
 enable_actor_response = false;
-timing.actor_response_state_duration =3;%--1.6
-timing.actor_response_state_chooser_duration = 0.1;%--0.30
+timing.actor_response_state_duration =1.5;%--1.6
+timing.actor_response_state_chooser_duration = 0.05;%--0.30
 timing.actor_response_state_signaler_duration = 0.0;
-timing.actor_response_reward_m1 = 0.7;
+timing.actor_response_reward_m1 = 0.4;
 timing.actor_response_reward_m2 = 0;
 
 % 7 feedback & reward
@@ -136,6 +154,9 @@ timing.iti_duration = 1.5;
 timing.error_duration = 1.8; % timeout in case of failure to fixate
 timing.feedback_duration = 1;
 timing.waitSecs = 0.05;
+
+% sound 
+% note: media player: paly wn, 10 
 
 
 % sound 
@@ -152,6 +173,7 @@ player = audioplayer(y, Fs);
 
 
 % gaze delay block
+
 gaze_delay_block = 3;
 if gaze_delay_block == 1
   enable_gaze_triggered_delay = true;
@@ -169,11 +191,25 @@ elseif gaze_delay_block == 3
   enable_spatial_cue = false;
   enable_fix_delay = false;
   enable_actor_response = false;
+elseif gaze_delay_block ==7
+  enable_gaze_triggered_actor_choice = false;
+  enable_gaze_triggered_delay = false;
+  enable_spatial_cue = true;
+  enable_fix_delay = false;
+  enable_actor_response = true;
+elseif gaze_delay_block ==8
+  enable_gaze_triggered_actor_choice = false;
+  enable_gaze_triggered_delay = false;
+  enable_spatial_cue = false;
+  enable_fix_delay = false;
+  enable_actor_response = false;
 end
 
 % how long m1 and m2 can be overlapping in their target bounds before state
 % exits
 timing.overlap_duration_to_exit = nan;
+
+
 
 %{
 name of monkeys
@@ -188,14 +224,13 @@ name_of_m2 ='M2_hitch';% 'Hitch';
   stimuli parameters
 %}
 
-fix_cross_visu_angl = 6;%deg
+fix_cross_visu_angl =6;%deg
 visanglex = fix_cross_visu_angl;
 visangley = fix_cross_visu_angl;
 
-
-totdist_m1 = 310;%mm
-totdist_m2 = 315;%mm
-screen_height_left =8;% cm after monitor down 
+totdist_m1 = 464;%mm
+totdist_m2 = 505;%mm
+screen_height_left = 9.2;% cm after monitor down 
 
 
 screenwidth = 338.66666667;%mm
@@ -218,7 +253,7 @@ fix_target_size_m2 = fix_cross_size_m2; % p
 lr_eccen = 40; % px amount to shift left and right targets towards screen edges
 
 % add +/- target_padding
-padding_angl = 5;
+padding_angl = 4;
 % padding_angl = 0;
 visanglex = padding_angl;
 visangley = padding_angl;
@@ -1036,14 +1071,14 @@ function [res, m1_ever_chose, m2_ever_chose,was_m1_correct,was_m2_correct] = sta
   
   num_chunks = 5;
   min_space_between_targets = 2;
-  width_frac = 0.9;
+  width_frac = 0.6;
   
 %   [m2_left_chunk, m2_right_chunk] = choose_chunks( num_chunks, min_space_between_targets );
   
   dist_idxs = [2,3,4];
   dist_idx=randperm(length(dist_idxs),1);
   dist_choo=dist_idxs(dist_idx);
-  dist_choo = 2;
+  dist_choo = 4;
   if dist_choo == 4
     if rand()<1/2
       m2_left_chunk = targ_loca_dist_4(1);
@@ -1159,7 +1194,7 @@ function [res, m1_ever_chose, m2_ever_chose,was_m1_correct,was_m2_correct] = sta
       end
     else
       % if m1 looks at m2's face, then turn off sound.
-      pause(player)
+%       pause(player)
 
       [m1_chose, m1_choice] = update( ...
         choice_m1, m1_xy(1), m1_xy(2), curr_t, choice_time_m1, m1_rects_remap() );
